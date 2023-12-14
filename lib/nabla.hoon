@@ -17,6 +17,8 @@
 ::
 +$  band  (list local-grad)
 ::
+:: TODO: factor out ops and leave as a wrapper door only
+::
 ++  recorder  
   |_  =band
   ++  this  .
@@ -94,6 +96,20 @@
       (mul:rd val.p seed) 
     (snag ind.p acc)
   --
+++  grad
+  |=  [f=$-([(list scalar) _recorder] [scalar _recorder]) x=(list @rd)]
+  ^-  (list @rd)
+  =/  nu  |=  [v=@rd =band]
+          =/  r  ~(. recorder band)
+          =^  s  r  (new:r v)
+          [s band.r]
+  =/  bb  *band
+  =^  ss  bb  (spin x bb nu)
+  =/  r  ~(. recorder bb)
+  =^  y  r  (f ss r)
+  =/  df  (backprop:r)
+  df
+  ::  TODO: collect grad w.r.t x
 --
     
 
