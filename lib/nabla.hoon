@@ -1,77 +1,83 @@
 |%
-::  index of a node in the (topologically sorted) computational graph
+::  $index: ...of a node in the topologically sorted computational graph
 ::
 +$  index  @
-::  value and index of a node
+::  $scalar: wraps an @rd in an $index
 ::
 +$  scalar  [val=@rd ind=index]
-::  Same type as `scalar` but interpreted differently: Local partial 
+::  $dscalar: partial derivative of a $scalar
+::
+::  Same type as $scalar but interpreted differently: Local partial 
 ::  derivative of some node w.r.t the input node pointed to by 
 ::  ind.dscalar. 
 ::
 +$  dscalar  scalar 
-::  local gradient of a node
+::  $local-grad: local gradient of a node
 ::
 +$  local-grad  (list dscalar)  
-::  local gradients of all nodes in topological order
+::  $grad-graph: local gradients of all nodes in topological order
 ::
-+$  band  (list local-grad)
++$  grad-graph  (list local-grad)
 ::
 :: TODO: factor out ops and leave as a wrapper door only?
 ::
-++  recorder  
-  |_  =band
+++  grad-tracker  
+  |_  =grad-graph
   ++  this  .
+  :: 
+  :: wraps a single @rd in a scalar and appends it to the graph
   ::
   ++  new  
     |=  v=@rd
     ^-  [scalar _this]
-    :-  [val=v ind=(lent band)]  
-    this(band (snoc band ~))
+    :-  [val=v ind=(lent grad-graph)]  
+    this(grad-graph (snoc grad-graph ~))
+  :: 
+  :: wraps a list of @rd in scalars and appends them to the graph
   ::
   ++  news
     |=  vs=(list @rd)
     ^-  [(list scalar) _this]
     =/  scalars=(list scalar)  
-      -:(spin vs (lent band) |=([v=@rd ind=index] [`scalar`[v ind] +(ind)]))
+      -:(spin vs (lent grad-graph) |=([v=@rd ind=index] [`scalar`[v ind] +(ind)]))
     :-  scalars
     %=  this
-      band  (weld band `^band`(reap (lent vs) ~))
+      grad-graph  (weld grad-graph `^grad-graph`(reap (lent vs) ~))
     ==
   ::
   ++  add 
     |=  [a=scalar b=scalar]
     ^-  [scalar _this]
-    :-  [val=(add:rd val.a val.b) ind=(lent band)]
-    %=  this  band
-      %+  snoc  band
+    :-  [val=(add:rd val.a val.b) ind=(lent grad-graph)]
+    %=  this  grad-graph
+      %+  snoc  grad-graph
       ~[[val=.~1.0 ind=ind.a] [val=.~1.0 ind=ind.b]]
     ==
   ::
   ++  sub 
     |=  [a=scalar b=scalar]
     ^-  [scalar _this]
-    :-  [val=(sub:rd val.a val.b) ind=(lent band)]
-    %=  this  band
-      %+  snoc  band
+    :-  [val=(sub:rd val.a val.b) ind=(lent grad-graph)]
+    %=  this  grad-graph
+      %+  snoc  grad-graph
       ~[[val=.~1.0 ind=ind.a] [val=.~-1.0 ind=ind.b]]
     ==
   ::
   ++  mul 
     |=  [a=scalar b=scalar]
     ^-  [scalar _this]
-    :-  [val=(mul:rd val.a val.b) ind=(lent band)]
-    %=  this  band
-      %+  snoc  band
+    :-  [val=(mul:rd val.a val.b) ind=(lent grad-graph)]
+    %=  this  grad-graph
+      %+  snoc  grad-graph
       ~[[val=val.b ind=ind.a] [val=val.a ind=ind.b]]
     ==
   ::
   ++  div
     |=  [a=scalar b=scalar]
     ^-  [scalar _this]
-    :-  [val=(div:rd val.a val.b) ind=(lent band)]
-    %=  this  band
-      %+  snoc  band
+    :-  [val=(div:rd val.a val.b) ind=(lent grad-graph)]
+    %=  this  grad-graph
+      %+  snoc  grad-graph
       :~
         [val=(div:rd .~1.0 val.b) ind=ind.a] 
         [val=(div:rd (mul:rd .~-1.0 val.a) (mul:rd val.b val.b)) ind=ind.b]
@@ -85,29 +91,31 @@
     |=  [a=scalar]
     ^-  [scalar _this]
     ?:  (gth:rd val.a .~0.0)
-      :-  [val=val.a ind=(lent band)]
-      this(band (snoc band ~[[val=.~1.0 ind=ind.a]]))
-    :-  [val=.~0.0 ind=(lent band)]
-    this(band (snoc band ~[[val=.~0.0 ind=ind.a]]))
+      :-  [val=val.a ind=(lent grad-graph)]
+      this(grad-graph (snoc grad-graph ~[[val=.~1.0 ind=ind.a]]))
+    :-  [val=.~0.0 ind=(lent grad-graph)]
+    this(grad-graph (snoc grad-graph ~[[val=.~0.0 ind=ind.a]]))
   ::
-  :: Accumulates the entries of the gradient via backpropagation
+  :: Accumulates the gradient of the last item in the
+  :: computation graph via backpropagation
   :: 
   ++  backprop
     |:  seed=.~1.0
     :: TODO: Maybe lest instead of list?
     ::
     ^-  (list @rd)
-    =/  grads-acc  `(list @rd)`(snoc (reap (dec (lent band)) .~0.0) seed)
+    =/  grads-acc  `(list @rd)`(snoc (reap (dec (lent grad-graph)) .~0.0) seed)
     =/  grads  `(list @rd)`~
     |-
-    ?:  .=(1 (lent band))
-      :: return the gradient in the same order as the entries in band
+    ?:  .=(1 (lent grad-graph))
+      :: return the gradient in the same order as the entries in grad-graph
       (flop (snoc grads (rear grads-acc)))
     %=  $
-      grads-acc  (backprop-step (rear band) (rear grads-acc) (snip grads-acc))
+      grads-acc  (backprop-step (rear grad-graph) (rear grads-acc) (snip grads-acc))
       grads  (snoc grads (rear grads-acc))
-      band  (snip band)
+      grad-graph  (snip grad-graph)
     == 
+  :: helper gate for `++  backprop`
   ::
   ++  backprop-step
     |=  [=local-grad seed=@rd gacc=(list @rd)]
@@ -120,28 +128,33 @@
       (mul:rd val.p seed) 
     (snag ind.p acc)
   --
+::  $scalar-fn: a scalar-valued function. can be passed to `grad`
 ::
-+$  diffable  $-([(list scalar) _recorder] [scalar _recorder])
++$  scalar-fn  $-([(list scalar) _grad-tracker] [scalar _grad-tracker])
 :: 
-:: Gradient and value of a function
+:: (gate that computes the value and gradient of f)
 :: 
 ++  grad-val
-  |=  f=diffable
+  |=  f=scalar-fn
   ^-  $-((list @rd) [@rd (list @rd)])
   |=  x=(list @rd)
-  =/  r  ~(. recorder *band)
+  =/  r  ~(. grad-tracker *grad-graph)
+  :: wrap the inputs in scalars and do the forward pass
+  ::
   =^  ss  r  (news:r x)
   =^  y  r  (f ss r)
+  :: backpropagate to obtain the full gradient
+  ::
   =/  dall  (backprop:r)
+  :: collect the gradient corresponding to the input values only
+  ::
   =/  dx  (turn `(list scalar)`ss |=(=scalar (snag ind.scalar dall)))
   [val.y dx]
 ::
-:: Gradient "operator".
-:: Returns a function that computes the gradient of the input function f
-:: w.r.t the latter's inputs.
+:: (gate that computes the gradient of f)
 ::
 ++  grad
-  |=  f=diffable
+  |=  f=scalar-fn
   ^-  $-((list @rd) (list @rd))
   |=  x=(list @rd)
   ^-  (list @rd)
@@ -149,9 +162,10 @@
 ::
 ++  nn
   |%
+  ::
   ++  linear 
-    |=  [x=(list scalar) params=(list scalar) r=_recorder]
-    ^-  [scalar _recorder]
+    |=  [x=(list scalar) params=(list scalar) r=_grad-tracker]
+    ^-  [scalar _grad-tracker]
     ?>  (gth (lent x) 0)
     ?>  .=(+((lent x)) (lent params))
     =/  weights  (snip params)
@@ -168,6 +182,13 @@
       out  out-new
       r  r
     ==
+  ::
+  ++  neuron
+    |=  [x=(list scalar) params=(list scalar) r=_grad-tracker]
+    ^-  [scalar _grad-tracker]
+    =^  out  r  (linear x params r)
+    (relu:r out)
+  ::
   --
 --
-    
+
