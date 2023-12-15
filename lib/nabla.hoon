@@ -32,7 +32,8 @@
   ++  news
     |=  vs=(list @rd)
     ^-  [(list scalar) _this]
-    =/  scalars=(list scalar)  -:(spin vs (lent band) |=([v=@rd ind=index] [`scalar`[v ind] +(ind)]))
+    =/  scalars=(list scalar)  
+      -:(spin vs (lent band) |=([v=@rd ind=index] [`scalar`[v ind] +(ind)]))
     :-  scalars
     %=  this
       band  (weld band `^band`(reap (lent vs) ~))
@@ -115,13 +116,6 @@
   |=  f=diffable
   ^-  $-((list @rd) [@rd (list @rd)])
   |=  x=(list @rd)
-::  =/  nu  |=  [v=@rd b=band]
-::          ^-  [scalar band]
-::          =/  r  ~(. recorder b)
-::          =^  s  r  (new:r v)
-::          [s band.r]
-::  =/  bb  *band
-::  =^  ss  bb  (spin x bb nu)
   =/  r  ~(. recorder *band)
   =^  ss  r  (news:r x)
   =^  y  r  (f ss r)
@@ -140,26 +134,27 @@
   ^-  (list @rd)
   +:((grad-val f) x)
 ::
-::++  nn
-::  |%
-::  ++  linear 
-::    |=  [x=(list scalar) params=(list scalar) r=_recorder]
-::    ^-  [scalar recorder]
-::    ?>  .=(+((lent x)) (lent params))
-::    =/  weights  (snip x)
-::    =/  bias  (rear x)
-::    =/  out  (new:r .~0.0)
-::    |-  
-::    ?:  .=((lent x) 0)
-::      (add:r out bias)
-::    =^  xp  r  (mul:r (rear x) (rear params))
-::    =^  out-new  r  (add:r out xp)
-::    %=  $
-::      x  (snip x)
-::      params  (snip params)
-::      out  out-new
-::      r  r
-::    ==
-::  --
+++  nn
+  |%
+  ++  linear 
+    |=  [x=(list scalar) params=(list scalar) r=_recorder]
+    ^-  [scalar _recorder]
+    ?>  (gth (lent x) 0)
+    ?>  .=(+((lent x)) (lent params))
+    =/  weights  (snip params)
+    =/  bias  (rear params)
+    =^  out  r  (new:r .~0.0)
+    |-  
+    ?:  .=((lent x) 0)
+      (add:r out bias)
+    =^  xw  r  (mul:r (rear x) (rear weights))
+    =^  out-new  r  (add:r out xw)
+    %=  $
+      x  (snip x)
+      weights  (snip weights)
+      out  out-new
+      r  r
+    ==
+  --
 --
     
