@@ -77,6 +77,19 @@
         [val=(div:rd (mul:rd .~-1.0 val.a) (mul:rd val.b val.b)) ind=ind.b]
       ==
     ==
+  ::  
+  :: Rectified linear unit. 
+  :: The gradient at zero is set to zero
+  :: 
+  ++  relu
+    |=  [a=scalar]
+    ^-  [scalar _this]
+    ?:  (gth:rd val.a .~0.0)
+      :-  [val=val.a ind=(lent band)]
+      this(band (snoc band ~[[val=.~1.0 ind=ind.a]]))
+    :-  [val=.~0.0 ind=(lent band)]
+    this(band (snoc band ~[[val=.~0.0 ind=ind.a]]))
+  ::
   :: Accumulates the entries of the gradient via backpropagation
   :: 
   ++  backprop
