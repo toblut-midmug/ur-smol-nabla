@@ -17,19 +17,6 @@
 ::
 +$  band  (list local-grad)
 ::
-+$  diffable  $-([(list scalar) _recorder] [scalar _recorder])
-::
-::  ++  news
-::    |=  [vs=@rd =band]
-::    ^-  [(list scalar) ^band]
-::    =/  nu  |=  [v=@rd b=^band]
-::            ^-  [scalar ^band]
-::            =/  r  ~(. recorder b)
-::            =^  s  r  (new:r v)
-::            [s band.r]
-::    =^  ss  band  (spin vs band nu)
-::    [ss band]
-::
 :: TODO: factor out ops and leave as a wrapper door only?
 ::
 ++  recorder  
@@ -37,10 +24,19 @@
   ++  this  .
   ::
   ++  new  
-    |=  [v=@rd]
+    |=  v=@rd
     ^-  [scalar _this]
     :-  [val=v ind=(lent band)]  
     this(band (snoc band ~))
+  ::
+  ++  news
+    |=  vs=(list @rd)
+    ^-  [(list scalar) _this]
+    =/  scalars=(list scalar)  -:(spin vs (lent band) |=([v=@rd ind=index] [`scalar`[v ind] +(ind)]))
+    :-  scalars
+    %=  this
+      band  (weld band `^band`(reap (lent vs) ~))
+    ==
   ::
   ++  add 
     |=  [a=scalar b=scalar]
@@ -83,7 +79,7 @@
   :: Accumulates the entries of the gradient via backpropagation
   :: 
   ++  backprop
-    |:  [seed=.~1.0]
+    |:  seed=.~1.0
     :: TODO: Maybe lest instead of list?
     ::
     ^-  (list @rd)
@@ -110,33 +106,60 @@
       (mul:rd val.p seed) 
     (snag ind.p acc)
   --
+::
++$  diffable  $-([(list scalar) _recorder] [scalar _recorder])
 :: 
 :: Gradient and value of a function
 :: 
 ++  grad-val
-  |=  [f=diffable x=(list @rd)]
-  ^-  [@rd (list @rd)]
-  =/  nu  |=  [v=@rd b=band]
-          ^-  [scalar band]
-          =/  r  ~(. recorder b)
-          =^  s  r  (new:r v)
-          [s band.r]
-  =/  bb  *band
-  =^  ss  bb  (spin x bb nu)
-  =/  r  ~(. recorder bb)
+  |=  f=diffable
+  ^-  $-((list @rd) [@rd (list @rd)])
+  |=  x=(list @rd)
+::  =/  nu  |=  [v=@rd b=band]
+::          ^-  [scalar band]
+::          =/  r  ~(. recorder b)
+::          =^  s  r  (new:r v)
+::          [s band.r]
+::  =/  bb  *band
+::  =^  ss  bb  (spin x bb nu)
+  =/  r  ~(. recorder *band)
+  =^  ss  r  (news:r x)
   =^  y  r  (f ss r)
   =/  dall  (backprop:r)
   =/  dx  (turn `(list scalar)`ss |=(=scalar (snag ind.scalar dall)))
   [val.y dx]
 ::
-:: Gradient of a function
-:: 
+:: Gradient "operator".
+:: Returns a function that computes the gradient of the input function f
+:: w.r.t the latter's inputs.
+::
 ++  grad
-  |=  [f=diffable x=(list @rd)]
+  |=  f=diffable
+  ^-  $-((list @rd) (list @rd))
+  |=  x=(list @rd)
   ^-  (list @rd)
-  +:(grad-val f x)
+  +:((grad-val f) x)
+::
+::++  nn
+::  |%
+::  ++  linear 
+::    |=  [x=(list scalar) params=(list scalar) r=_recorder]
+::    ^-  [scalar recorder]
+::    ?>  .=(+((lent x)) (lent params))
+::    =/  weights  (snip x)
+::    =/  bias  (rear x)
+::    =/  out  (new:r .~0.0)
+::    |-  
+::    ?:  .=((lent x) 0)
+::      (add:r out bias)
+::    =^  xp  r  (mul:r (rear x) (rear params))
+::    =^  out-new  r  (add:r out xp)
+::    %=  $
+::      x  (snip x)
+::      params  (snip params)
+::      out  out-new
+::      r  r
+::    ==
+::  --
 --
     
-
-
-
