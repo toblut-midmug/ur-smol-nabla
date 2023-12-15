@@ -13,15 +13,29 @@
 ::  local gradient of a node
 ::
 +$  local-grad  (list dscalar)  
-::  local gradients in topological order
+::  local gradients of all nodes in topological order
 ::
 +$  band  (list local-grad)
 ::
-:: TODO: factor out ops and leave as a wrapper door only
++$  diffable  $-([(list scalar) _recorder] [scalar _recorder])
+::
+::  ++  news
+::    |=  [vs=@rd =band]
+::    ^-  [(list scalar) ^band]
+::    =/  nu  |=  [v=@rd b=^band]
+::            ^-  [scalar ^band]
+::            =/  r  ~(. recorder b)
+::            =^  s  r  (new:r v)
+::            [s band.r]
+::    =^  ss  band  (spin vs band nu)
+::    [ss band]
+::
+:: TODO: factor out ops and leave as a wrapper door only?
 ::
 ++  recorder  
   |_  =band
   ++  this  .
+  ::
   ++  new  
     |=  [v=@rd]
     ^-  [scalar _this]
@@ -66,8 +80,7 @@
         [val=(div:rd (mul:rd .~-1.0 val.a) (mul:rd val.b val.b)) ind=ind.b]
       ==
     ==
-  :: Accumulates the entries of the gradient via backpropagation and
-  :: returns them in reverse order i.e. the seed is the first entry in the list.
+  :: Accumulates the entries of the gradient via backpropagation
   :: 
   ++  backprop
     |:  [seed=.~1.0]
@@ -78,7 +91,8 @@
     =/  grads  `(list @rd)`~
     |-
     ?:  .=(1 (lent band))
-      (snoc grads (rear grads-acc))
+      :: return the gradient in the same order as the entries in band
+      (flop (snoc grads (rear grads-acc)))
     %=  $
       grads-acc  (backprop-step (rear band) (rear grads-acc) (snip grads-acc))
       grads  (snoc grads (rear grads-acc))
@@ -96,20 +110,31 @@
       (mul:rd val.p seed) 
     (snag ind.p acc)
   --
-++  grad
-  |=  [f=$-([(list scalar) _recorder] [scalar _recorder]) x=(list @rd)]
-  ^-  (list @rd)
-  =/  nu  |=  [v=@rd =band]
-          =/  r  ~(. recorder band)
+:: 
+:: Gradient and value of a function
+:: 
+++  grad-val
+  |=  [f=diffable x=(list @rd)]
+  ^-  [@rd (list @rd)]
+  =/  nu  |=  [v=@rd b=band]
+          ^-  [scalar band]
+          =/  r  ~(. recorder b)
           =^  s  r  (new:r v)
           [s band.r]
   =/  bb  *band
   =^  ss  bb  (spin x bb nu)
   =/  r  ~(. recorder bb)
   =^  y  r  (f ss r)
-  =/  df  (backprop:r)
-  df
-  ::  TODO: collect grad w.r.t x
+  =/  dall  (backprop:r)
+  =/  dx  (turn `(list scalar)`ss |=(=scalar (snag ind.scalar dall)))
+  [val.y dx]
+::
+:: Gradient of a function
+:: 
+++  grad
+  |=  [f=diffable x=(list @rd)]
+  ^-  (list @rd)
+  +:(grad-val f x)
 --
     
 
