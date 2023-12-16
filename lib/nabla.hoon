@@ -115,20 +115,19 @@
       grads  (snoc grads (rear grads-acc))
       grad-graph  (snip grad-graph)
     == 
-  :: helper gate for `++  backprop`
+  :: helper gate for ++backprop
   ::
   ++  backprop-step
     |=  [=local-grad seed=@rd gacc=(list @rd)]
     ^-  (list @rd)
-    %+  reel  
-      local-grad
+    %+  reel  local-grad
     |:  [p=*dscalar acc=gacc]
     %^  snap  acc  ind.p 
     %+  add:rd 
       (mul:rd val.p seed) 
     (snag ind.p acc)
   --
-::  $scalar-fn: a scalar-valued function. can be passed to `grad`
+::  $scalar-fn: a scalar-valued function. can be passed to ++grad
 ::
 +$  scalar-fn  $-([(list scalar) _grad-tracker] [scalar _grad-tracker])
 :: 
@@ -172,8 +171,7 @@
     =/  bias  (rear params)
     =^  out  r  (new:r .~0.0)
     |-  
-    ?:  .=((lent x) 0)
-      (add:r out bias)
+    ?:  .=((lent x) 0)  (add:r out bias)
     =^  xw  r  (mul:r (rear x) (rear weights))
     =^  out-new  r  (add:r out xw)
     %=  $
@@ -189,6 +187,24 @@
     =^  out  r  (linear x params r)
     (relu:r out)
   ::
+  ++  layer
+    |=  [nin=@ud nout=@ud]
+    =/  nparams-neuron  +(nin)
+    =/  nparams  (mul nparams-neuron nout)
+    :_  nparams
+    |=  [x=(list scalar) params=(list scalar) r=_grad-tracker]
+    ^-  [(list scalar) _grad-tracker]
+    ?>  .=((lent x) nin)
+    ?>  .=((lent params) nparams)
+    =/  outs=(list scalar)  ~
+    |-  
+    ?~  params  [outs r]
+    =^  out  r  (neuron x (scag nparams-neuron `(list scalar)`params) r)
+    %=  $
+      outs  (snoc outs out)
+      params  (oust [0 nparams-neuron] `(list scalar)`params)
+      r  r
+    ==
   --
 --
 
