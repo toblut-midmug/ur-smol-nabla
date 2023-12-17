@@ -20,7 +20,7 @@
 +$  grad-graph  (list local-grad)
 ::  $scalar-fn: a scalar-valued function. can be passed to ++grad
 ::
-+$  scalar-fn  $-([(list scalar) _grad-tracker] [scalar _grad-tracker])
++$  scalar-fn  $-([(list scalar) grad-graph] [scalar grad-graph])
 :: wraps a single @rd in a $scalar and appends it to the graph
 ::
 ++  new  
@@ -79,13 +79,11 @@
   :-  [val=.~0.0 ind=(lent gg)]
   (snoc gg ~[[val=.~0.0 ind=ind.a]])
 :: 
-:: Accumulates the gradient of the last item in the
-:: computation graph via backpropagation
+:: Accumulates the gradient of the last item in the $grad-graph
+:: via backpropagation
 :: 
 ++  backprop
   |=  =grad-graph
-  :: TODO: Maybe lest instead of list?
-  ::
   ^-  (list @rd)
   =/  seed=@rd  .~1.0
   =/  grads-acc  `(list @rd)`(snoc (reap (dec (lent grad-graph)) .~0.0) seed)
@@ -117,14 +115,14 @@
   |=  f=scalar-fn
   ^-  $-((list @rd) [@rd (list @rd)])
   |=  x=(list @rd)
-  =/  r  ~(. grad-tracker *grad-graph)
+  =/  gg  *grad-graph
   :: wrap the inputs in scalars and do the forward pass
   ::
-  =^  ss  r  (news:r x)
-  =^  y  r  (f ss r)
+  =^  ss  gg  (news x gg)
+  =^  y  gg  (f ss gg)
   :: backpropagate to obtain the full gradient
   ::
-  =/  dall  (backprop grad-graph.r)
+  =/  dall  (backprop gg)
   :: collect the gradient corresponding to the input values only
   ::
   =/  dx  (turn `(list scalar)`ss |=(=scalar (snag ind.scalar dall)))
