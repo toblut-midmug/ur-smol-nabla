@@ -79,9 +79,6 @@
   :-  [val=.~0.0 ind=(lent gg)]
   (snoc gg ~[[val=.~0.0 ind=ind.a]])
 :: 
-:: wrapper door for a $grad-graph that reduces boilerplate when working
-:: with elementary operations.
-::
 :: Accumulates the gradient of the last item in the
 :: computation graph via backpropagation
 :: 
@@ -141,6 +138,9 @@
   |=  x=(list @rd)
   ^-  (list @rd)
   +:((grad-val f) x)
+::
+:: wrapper door for a $grad-graph that reduces boilerplate when working
+:: with elementary operations.
 ::
 ++  grad-tracker  
   |_  =grad-graph
