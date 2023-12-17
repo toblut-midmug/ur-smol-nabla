@@ -95,38 +95,39 @@
       this(grad-graph (snoc grad-graph ~[[val=.~1.0 ind=ind.a]]))
     :-  [val=.~0.0 ind=(lent grad-graph)]
     this(grad-graph (snoc grad-graph ~[[val=.~0.0 ind=ind.a]]))
+--
+::
+:: Accumulates the gradient of the last item in the
+:: computation graph via backpropagation
+:: 
+++  backprop
+  |=  =grad-graph
+  :: TODO: Maybe lest instead of list?
   ::
-  :: Accumulates the gradient of the last item in the
-  :: computation graph via backpropagation
-  :: 
-  ++  backprop
-    |:  seed=.~1.0
-    :: TODO: Maybe lest instead of list?
-    ::
-    ^-  (list @rd)
-    =/  grads-acc  `(list @rd)`(snoc (reap (dec (lent grad-graph)) .~0.0) seed)
-    =/  grads  `(list @rd)`~
-    |-
-    ?:  .=(1 (lent grad-graph))
-      :: return the gradient in the same order as the entries in grad-graph
-      (flop (snoc grads (rear grads-acc)))
-    %=  $
-      grads-acc  (backprop-step (rear grad-graph) (rear grads-acc) (snip grads-acc))
-      grads  (snoc grads (rear grads-acc))
-      grad-graph  (snip grad-graph)
-    == 
-  :: helper gate for ++backprop
-  ::
-  ++  backprop-step
-    |=  [=local-grad seed=@rd gacc=(list @rd)]
-    ^-  (list @rd)
-    %+  reel  local-grad
-    |:  [p=*dscalar acc=gacc]
-    %^  snap  acc  ind.p 
-    %+  add:rd 
-      (mul:rd val.p seed) 
-    (snag ind.p acc)
-  --
+  ^-  (list @rd)
+  =/  seed=@rd  .~1.0
+  =/  grads-acc  `(list @rd)`(snoc (reap (dec (lent grad-graph)) .~0.0) seed)
+  =/  grads  `(list @rd)`~
+  |-
+  ?:  .=(1 (lent grad-graph))
+    :: return the gradient in the same order as the entries in grad-graph
+    (flop (snoc grads (rear grads-acc)))
+  %=  $
+    grads-acc  (backprop-step (rear grad-graph) (rear grads-acc) (snip grads-acc))
+    grads  (snoc grads (rear grads-acc))
+    grad-graph  (snip grad-graph)
+  == 
+:: helper gate for ++backprop
+::
+++  backprop-step
+  |=  [=local-grad seed=@rd gacc=(list @rd)]
+  ^-  (list @rd)
+  %+  reel  local-grad
+  |:  [p=*dscalar acc=gacc]
+  %^  snap  acc  ind.p 
+  %+  add:rd 
+    (mul:rd val.p seed) 
+  (snag ind.p acc)
 ::  $scalar-fn: a scalar-valued function. can be passed to ++grad
 ::
 +$  scalar-fn  $-([(list scalar) _grad-tracker] [scalar _grad-tracker])
@@ -144,7 +145,7 @@
   =^  y  r  (f ss r)
   :: backpropagate to obtain the full gradient
   ::
-  =/  dall  (backprop:r)
+  =/  dall  (backprop grad-graph.r)
   :: collect the gradient corresponding to the input values only
   ::
   =/  dx  (turn `(list scalar)`ss |=(=scalar (snag ind.scalar dall)))
