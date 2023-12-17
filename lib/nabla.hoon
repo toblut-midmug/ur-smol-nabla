@@ -18,84 +18,69 @@
 ::  $grad-graph: local gradients of all `$scalar`s in the graph in topological order
 ::
 +$  grad-graph  (list local-grad)
+::  $scalar-fn: a scalar-valued function. can be passed to ++grad
 ::
-:: TODO: factor out ops and leave as a wrapper door only?
++$  scalar-fn  $-([(list scalar) _grad-tracker] [scalar _grad-tracker])
+:: wraps a single @rd in a $scalar and appends it to the graph
 ::
-++  grad-tracker  
-  |_  =grad-graph
-  ++  this  .
-  :: 
-  :: wraps a single @rd in a $scalar and appends it to the graph
-  ::
-  ++  new  
-    |=  v=@rd
-    ^-  [scalar _this]
-    :-  [val=v ind=(lent grad-graph)]  
-    this(grad-graph (snoc grad-graph ~))
-  :: 
-  :: wraps a list of @rd in `$scalar`s and appends them to the graph
-  ::
-  ++  news
-    |=  vs=(list @rd)
-    ^-  [(list scalar) _this]
-    =/  scalars=(list scalar)  
-      -:(spin vs (lent grad-graph) |=([v=@rd ind=index] [`scalar`[v ind] +(ind)]))
-    :-  scalars
-    %=  this
-      grad-graph  (weld grad-graph `^grad-graph`(reap (lent vs) ~))
-    ==
-  ::
-  ++  add 
-    |=  [a=scalar b=scalar]
-    ^-  [scalar _this]
-    :-  [val=(add:rd val.a val.b) ind=(lent grad-graph)]
-    %=  this  grad-graph
-      %+  snoc  grad-graph
-      ~[[val=.~1.0 ind=ind.a] [val=.~1.0 ind=ind.b]]
-    ==
-  ::
-  ++  sub 
-    |=  [a=scalar b=scalar]
-    ^-  [scalar _this]
-    :-  [val=(sub:rd val.a val.b) ind=(lent grad-graph)]
-    %=  this  grad-graph
-      %+  snoc  grad-graph
-      ~[[val=.~1.0 ind=ind.a] [val=.~-1.0 ind=ind.b]]
-    ==
-  ::
-  ++  mul 
-    |=  [a=scalar b=scalar]
-    ^-  [scalar _this]
-    :-  [val=(mul:rd val.a val.b) ind=(lent grad-graph)]
-    %=  this  grad-graph
-      %+  snoc  grad-graph
-      ~[[val=val.b ind=ind.a] [val=val.a ind=ind.b]]
-    ==
-  ::
-  ++  div
-    |=  [a=scalar b=scalar]
-    ^-  [scalar _this]
-    :-  [val=(div:rd val.a val.b) ind=(lent grad-graph)]
-    %=  this  grad-graph
-      %+  snoc  grad-graph
-      :~
-        [val=(div:rd .~1.0 val.b) ind=ind.a] 
-        [val=(div:rd (mul:rd .~-1.0 val.a) (mul:rd val.b val.b)) ind=ind.b]
-      ==
-    ==
-  ::  
-  :: Rectified linear unit. 
-  :: The gradient at zero is set to zero
-  :: 
-  ++  relu
-    |=  [a=scalar]
-    ^-  [scalar _this]
-    ?:  (gth:rd val.a .~0.0)
-      :-  [val=val.a ind=(lent grad-graph)]
-      this(grad-graph (snoc grad-graph ~[[val=.~1.0 ind=ind.a]]))
-    :-  [val=.~0.0 ind=(lent grad-graph)]
-    this(grad-graph (snoc grad-graph ~[[val=.~0.0 ind=ind.a]]))
---
+++  new  
+  |=  [v=@rd gg=grad-graph]
+  ^-  [scalar grad-graph]
+  :-  [val=v ind=(lent gg)]  
+  (snoc gg ~)
+:: 
+:: wraps a list of @rd in `$scalar`s and appends them to the graph
+::
+++  news
+  |=  [vs=(list @rd) gg=grad-graph]
+  ^-  [(list scalar) grad-graph]
+  (spin vs gg new)
+::
+++  add 
+  |=  [a=scalar b=scalar gg=grad-graph]
+  ^-  [scalar grad-graph]
+  :-  [val=(add:rd val.a val.b) ind=(lent gg)]
+  %+  snoc  gg
+  ~[[val=.~1.0 ind=ind.a] [val=.~1.0 ind=ind.b]]
+::
+++  sub 
+  |=  [a=scalar b=scalar gg=grad-graph]
+  ^-  [scalar grad-graph]
+  :-  [val=(sub:rd val.a val.b) ind=(lent gg)]
+  %+  snoc  gg
+  ~[[val=.~1.0 ind=ind.a] [val=.~-1.0 ind=ind.b]]
+::
+++  mul 
+  |=  [a=scalar b=scalar gg=grad-graph]
+  ^-  [scalar grad-graph]
+  :-  [val=(mul:rd val.a val.b) ind=(lent gg)]
+  %+  snoc  gg
+  ~[[val=val.b ind=ind.a] [val=val.a ind=ind.b]]
+::
+++  div
+  |=  [a=scalar b=scalar gg=grad-graph]
+  ^-  [scalar grad-graph]
+  :-  [val=(div:rd val.a val.b) ind=(lent gg)]
+  %+  snoc  gg
+  :~
+    [val=(div:rd .~1.0 val.b) ind=ind.a] 
+    [val=(div:rd (mul:rd .~-1.0 val.a) (mul:rd val.b val.b)) ind=ind.b]
+  ==
+::  
+:: Rectified linear unit. 
+:: The gradient at zero is set to zero
+:: 
+++  relu
+  |=  [a=scalar gg=grad-graph]
+  ^-  [scalar grad-graph]
+  ?:  (gth:rd val.a .~0.0)
+    :-  [val=val.a ind=(lent gg)]
+    (snoc gg ~[[val=.~1.0 ind=ind.a]])
+  :-  [val=.~0.0 ind=(lent gg)]
+  (snoc gg ~[[val=.~0.0 ind=ind.a]])
+:: 
+:: wrapper door for a $grad-graph that reduces boilerplate when working
+:: with elementary operations.
 ::
 :: Accumulates the gradient of the last item in the
 :: computation graph via backpropagation
@@ -128,9 +113,6 @@
   %+  add:rd 
     (mul:rd val.p seed) 
   (snag ind.p acc)
-::  $scalar-fn: a scalar-valued function. can be passed to ++grad
-::
-+$  scalar-fn  $-([(list scalar) _grad-tracker] [scalar _grad-tracker])
 :: 
 :: (gate that computes the value and gradient of f)
 :: 
@@ -160,54 +142,49 @@
   ^-  (list @rd)
   +:((grad-val f) x)
 ::
-++  nn
-  |%
+++  grad-tracker  
+  |_  =grad-graph
+  ++  this  .
+  :: 
+  ++  wrap-unary
+    |=  op=$-([scalar ^grad-graph] [scalar ^grad-graph])
+    ^-  $-(scalar [scalar _this])
+    |=  [a=scalar]
+    ^-  [scalar _this]
+    =^  out  grad-graph  (op a grad-graph)
+    [out this(grad-graph grad-graph)]
   ::
-  ++  linear 
-    |=  [x=(list scalar) params=(list scalar) r=_grad-tracker]
-    ^-  [scalar _grad-tracker]
-    ?>  (gth (lent x) 0)
-    ?>  .=(+((lent x)) (lent params))
-    =/  weights  (snip params)
-    =/  bias  (rear params)
-    =^  out  r  (new:r .~0.0)
-    |-  
-    ?:  .=((lent x) 0)  (add:r out bias)
-    =^  xw  r  (mul:r (rear x) (rear weights))
-    =^  out-new  r  (add:r out xw)
-    %=  $
-      x  (snip x)
-      weights  (snip weights)
-      out  out-new
-      r  r
-    ==
+  ++  wrap-binary
+    |=  op=$-([scalar scalar ^grad-graph] [scalar ^grad-graph])
+    ^-  $-([scalar scalar] [scalar _this])
+    |=  [a=scalar b=scalar]
+    ^-  [scalar _this]
+    =^  out  grad-graph  (op a b grad-graph)
+    [out this(grad-graph grad-graph)]
   ::
-  ++  neuron
-    |=  [x=(list scalar) params=(list scalar) r=_grad-tracker]
-    ^-  [scalar _grad-tracker]
-    =^  out  r  (linear x params r)
-    (relu:r out)
+  ++  new  
+    |=  v=@rd
+    ^-  [scalar _this]
+    =^  s  grad-graph  (^new v grad-graph)
+    [s this(grad-graph grad-graph)]
   ::
-  ::  fully connected layer
+  ++  news
+    |=  vs=(list @rd)
+    ^-  [(list scalar) _this]
+    =^  s  grad-graph  (^news vs grad-graph)
+    [s this(grad-graph grad-graph)]
   ::
-  ++  layer
-    |=  [nin=@ud nout=@ud]
-    =/  nparams-neuron  +(nin)
-    =/  nparams  (mul nparams-neuron nout)
-    :_  nparams
-    |=  [x=(list scalar) params=(list scalar) r=_grad-tracker]
-    ^-  [(list scalar) _grad-tracker]
-    ?>  .=((lent x) nin)
-    ?>  .=((lent params) nparams)
-    =/  outs=(list scalar)  ~
-    |-  
-    ?~  params  [outs r]
-    =^  out  r  (neuron x (scag nparams-neuron `(list scalar)`params) r)
-    %=  $
-      outs  (snoc outs out)
-      params  (oust [0 nparams-neuron] `(list scalar)`params)
-      r  r
-    ==
+  ++  add  (wrap-binary ^add)
+  ::
+  ++  sub  (wrap-binary ^sub)
+  ::
+  ++  mul  (wrap-binary ^mul)
+  ::
+  ++  div  (wrap-binary ^div)
+  ::  
+  ++  relu  (wrap-unary ^relu)
+  ::
   --
+::
 --
 
