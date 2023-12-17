@@ -2,48 +2,49 @@
 |%
 ::
 ++  linear 
-  |=  [x=(list scalar) params=(list scalar) r=_grad-tracker]
-  ^-  [scalar _grad-tracker]
+  |=  [x=(list scalar) params=(list scalar) gg=grad-graph]
+  ^-  [scalar grad-graph]
   ?>  (gth (lent x) 0)
   ?>  .=(+((lent x)) (lent params))
   =/  weights  (snip params)
   =/  bias  (rear params)
-  =^  out  r  (new:r .~0.0)
+  =/  gt  ~(. grad-tracker gg)
+  =^  out  gt  (new:gt .~0.0)
   |-  
-  ?:  .=((lent x) 0)  (add:r out bias)
-  =^  xw  r  (mul:r (rear x) (rear weights))
-  =^  out-new  r  (add:r out xw)
+  ?:  .=((lent x) 0)  (add out bias grad-graph.gt)
+  =^  xw  gt  (mul:gt (rear x) (rear weights))
+  =^  out-new  gt  (add:gt out xw)
   %=  $
     x  (snip x)
     weights  (snip weights)
     out  out-new
-    r  r
+    gt  gt
   ==
 ::
 ++  neuron
-  |=  [x=(list scalar) params=(list scalar) r=_grad-tracker]
-  ^-  [scalar _grad-tracker]
-  =^  out  r  (linear x params r)
-  (relu:r out)
+  |=  [x=(list scalar) params=(list scalar) gg=grad-graph]
+  ^-  [scalar grad-graph]
+  =^  out  gg  (linear x params gg)
+  (relu out gg)
 ::
 ::  fully connected layer
 ::
 ++  layer
   |=  [nin=@ud nout=@ud]
   =/  nparams-neuron  +(nin)
-  =/  nparams  (mul nparams-neuron nout)
+  =/  nparams  (^mul nparams-neuron nout)
   :_  nparams
-  |=  [x=(list scalar) params=(list scalar) r=_grad-tracker]
-  ^-  [(list scalar) _grad-tracker]
+  |=  [x=(list scalar) params=(list scalar) gg=grad-graph]
+  ^-  [(list scalar) grad-graph]
   ?>  .=((lent x) nin)
   ?>  .=((lent params) nparams)
   =/  outs=(list scalar)  ~
   |-  
-  ?~  params  [outs r]
-  =^  out  r  (neuron x (scag nparams-neuron `(list scalar)`params) r)
+  ?~  params  [outs gg]
+  =^  out  gg  (neuron x (scag nparams-neuron `(list scalar)`params) gg)
   %=  $
     outs  (snoc outs out)
     params  (oust [0 nparams-neuron] `(list scalar)`params)
-    r  r
+    gg  gg
   ==
 --
