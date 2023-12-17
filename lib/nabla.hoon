@@ -8,14 +8,14 @@
 ::  $dscalar: partial derivative of a $scalar
 ::
 ::  Same type as $scalar but interpreted differently: Local partial 
-::  derivative of some node w.r.t the input node pointed to by 
+::  derivative of some $scalar w.r.t its input $scapar pointed to by 
 ::  ind.dscalar. 
 ::
 +$  dscalar  scalar 
-::  $local-grad: local gradient of a node
+::  $local-grad: local gradient of a $scalar
 ::
 +$  local-grad  (list dscalar)  
-::  $grad-graph: local gradients of all nodes in topological order
+::  $grad-graph: local gradients of all `$scalar`s in the graph in topological order
 ::
 +$  grad-graph  (list local-grad)
 ::
@@ -25,7 +25,7 @@
   |_  =grad-graph
   ++  this  .
   :: 
-  :: wraps a single @rd in a scalar and appends it to the graph
+  :: wraps a single @rd in a $scalar and appends it to the graph
   ::
   ++  new  
     |=  v=@rd
@@ -33,7 +33,7 @@
     :-  [val=v ind=(lent grad-graph)]  
     this(grad-graph (snoc grad-graph ~))
   :: 
-  :: wraps a list of @rd in scalars and appends them to the graph
+  :: wraps a list of @rd in `$scalar`s and appends them to the graph
   ::
   ++  news
     |=  vs=(list @rd)
@@ -186,6 +186,8 @@
     ^-  [scalar _grad-tracker]
     =^  out  r  (linear x params r)
     (relu:r out)
+  ::
+  ::  fully connected layer
   ::
   ++  layer
     |=  [nin=@ud nout=@ud]
