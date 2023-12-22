@@ -137,6 +137,6 @@
   %-  expect 
   !>
   %+  close-enuf 
-    ((grad:nabla f-polyonmial) ~[.~2.0]) 
+    ((grad:nabla f-polynomial) ~[.~2.0]) 
   (limo ~[(f-prime-polynomial ~[.~2.0])])
 --    
