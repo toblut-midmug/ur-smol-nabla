@@ -79,21 +79,34 @@
   :-  [val=.~0.0 ind=(lent gg)]
   (snoc gg ~[[val=.~0.0 ind=ind.a]])
 :: 
-:: Accumulates the gradient of the last item in the $grad-graph
-:: via backpropagation
+:: Accumulates the gradient of the last node in the $grad-graph
+:: w.r.t all preceding nodes via backpropagation
+::
+:: TODO: only accumulate gradients of nodes that are strongly connected
+:: to the last one. Right now, backprop from nodes not strongly connected
+:: to the last one is seeded with zero and thus they do
+:: not contribute ... unless there are Infs or NaNs in the local grad,
+:: which "pollute" the graph and may lead to wrong results!
 :: 
 ++  backprop
   |=  =grad-graph
   ^-  (list @rd)
+  ::  initialize all gradients of the nodes before the last one to zero;
+  ::  the gradient of the very last node is one.
+  ::
   =/  seed=@rd  .~1.0
   =/  grads-acc  `(list @rd)`(snoc (reap (dec (lent grad-graph)) .~0.0) seed)
   =/  grads  `(list @rd)`~
   |-
   ?:  .=(1 (lent grad-graph))
     :: return the gradient in the same order as the entries in grad-graph
+    ::
     (flop (snoc grads (rear grads-acc)))
   %=  $
-    grads-acc  (backprop-step (rear grad-graph) (rear grads-acc) (snip grads-acc))
+    grads-acc  %^     backprop-step 
+                   (rear grad-graph) 
+                 (rear grads-acc) 
+               (snip grads-acc)
     grads  (snoc grads (rear grads-acc))
     grad-graph  (snip grad-graph)
   == 
