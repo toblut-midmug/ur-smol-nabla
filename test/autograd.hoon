@@ -139,4 +139,19 @@
   %+  close-enuf 
     ((grad:nabla f-polynomial) ~[.~2.0]) 
   (limo ~[(f-prime-polynomial ~[.~2.0])])
+::
+++  test-weakly-connected-nan
+  %-  expect
+  !>
+  .=  ~[.~20.0]
+  %.  ~[.~10.0]
+  %-  grad:nabla
+  |=  [x=(list scalar:nabla) r=grad-graph:nabla]
+  ^-  [scalar:nabla grad-graph:nabla]
+  ?~  x  !!
+  =^  nanval  r  (new:nabla .~nan r)
+  =^  dummy  r  (mul:nabla i.x nanval r)
+  =^  out  r  (mul:nabla i.x i.x r)
+  [out r]
+::
 --    
