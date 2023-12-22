@@ -66,6 +66,13 @@
     [val=(div:rd .~1.0 val.b) ind=ind.a] 
     [val=(div:rd (mul:rd .~-1.0 val.a) (mul:rd val.b val.b)) ind=ind.b]
   ==
+::
+++  sqt
+  |=  [a=scalar gg=grad-graph]
+  ^-  [scalar grad-graph]
+  :-  [val=(sqt:rd val.a) ind=(lent gg)]
+  %+  snoc  gg 
+  ~[[val=(div:rd .~0.5 (sqt:rd val.a)) ind=ind.a]]
 ::  
 :: Rectified linear unit. 
 :: The gradient at zero is set to zero
@@ -192,6 +199,8 @@
   ++  mul  (wrap-binary ^mul)
   ::
   ++  div  (wrap-binary ^div)
+  ::
+  ++  sqt  (wrap-unary ^sqt)
   ::  
   ++  relu  (wrap-unary ^relu)
   ::
