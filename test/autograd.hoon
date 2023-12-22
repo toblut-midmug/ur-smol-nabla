@@ -1,5 +1,5 @@
 /+  *test
-/+  nabla
+/+  usn=nabla
 |%
 ::
 ++  abs
@@ -27,15 +27,15 @@
 ::  dot product for lists of $scalar
 ::
 ++  dot-scalars
-  |=  [a=(list scalar:nabla) b=(list scalar:nabla) gg=grad-graph:nabla]
-  ^-  [scalar:nabla grad-graph:nabla]
+  |=  [a=(list scalar:usn) b=(list scalar:usn) gg=grad-graph:usn]
+  ^-  [scalar:usn grad-graph:usn]
   ?>  .=((lent a) (lent b))
-  =^  out-0  gg  (new:nabla .~0.0 gg)
+  =^  out-0  gg  (new:usn .~0.0 gg)
   |-
   ?:  |(?=(~ a) ?=(~ b))
     [out-0 gg]
-  =^  aibi  gg  (mul:nabla i.a i.b gg)
-  =^  out-sum  gg  (add:nabla aibi out-0 gg)
+  =^  aibi  gg  (mul:usn i.a i.b gg)
+  =^  out-sum  gg  (add:usn aibi out-0 gg)
   %=  $
     a  t.a
     b  t.b
@@ -78,26 +78,26 @@
         .~0.7480633
         .~6.7589856
     ==
-  =/  gg  *grad-graph:nabla
-  =^  ss  gg  (news:nabla vs gg)
-  =^  rs  gg  (news:nabla us gg)
+  =/  gg  *grad-graph:usn
+  =^  ss  gg  (news:usn vs gg)
+  =^  rs  gg  (news:usn us gg)
   .=  (dot-rd us vs) 
   val.-:(dot-scalars ss rs gg)
 ::
 ++  f-polynomial
-  |=  [x=(list scalar:nabla) gg=grad-graph:nabla]
-  ^-  [scalar:nabla grad-graph:nabla]
+  |=  [x=(list scalar:usn) gg=grad-graph:usn]
+  ^-  [scalar:usn grad-graph:usn]
   ?~  x  !!
   ?>  .=((lent x) 1)
-  =^  x0  gg  (new:nabla .~1.0 gg)
+  =^  x0  gg  (new:usn .~1.0 gg)
   =/  x1  i.x
-  =^  x2  gg  (mul:nabla x1 x1 gg)
-  =^  x3  gg  (mul:nabla x1 x2 gg)
-  =^  x4  gg  (mul:nabla x1 x3 gg)
-  =^  x5  gg  (mul:nabla x1 x4 gg)
+  =^  x2  gg  (mul:usn x1 x1 gg)
+  =^  x3  gg  (mul:usn x1 x2 gg)
+  =^  x4  gg  (mul:usn x1 x3 gg)
+  =^  x5  gg  (mul:usn x1 x4 gg)
   =/  powers  (limo ~[x0 x1 x2 x3 x4 x5])
   =^  coeffs  gg 
-    %+  news:nabla
+    %+  news:usn
       :~  .~-4.68699287
           .~-2.20431279
           .~2.56718151
@@ -137,7 +137,7 @@
   %-  expect 
   !>
   %+  close-enuf 
-    ((grad:nabla f-polynomial) ~[.~2.0]) 
+    ((grad:usn f-polynomial) ~[.~2.0]) 
   (limo ~[(f-prime-polynomial ~[.~2.0])])
 ::
 ++  test-weakly-connected-nan
@@ -145,13 +145,13 @@
   !>
   .=  ~[.~20.0]
   %.  ~[.~10.0]
-  %-  grad:nabla
-  |=  [x=(list scalar:nabla) r=grad-graph:nabla]
-  ^-  [scalar:nabla grad-graph:nabla]
+  %-  grad:usn
+  |=  [x=(list scalar:usn) r=grad-graph:usn]
+  ^-  [scalar:usn grad-graph:usn]
   ?~  x  !!
-  =^  nanval  r  (new:nabla .~nan r)
-  =^  dummy  r  (mul:nabla i.x nanval r)
-  =^  out  r  (mul:nabla i.x i.x r)
+  =^  nanval  r  (new:usn .~nan r)
+  =^  dummy  r  (mul:usn i.x nanval r)
+  =^  out  r  (mul:usn i.x i.x r)
   [out r]
 ::
 ++  test-sqt-of-square
@@ -160,11 +160,11 @@
   %+  close-enuf
     ~[.~-1.0]
   %.  ~[.~-12.3] 
-  %-  grad:nabla
-  |=  [x=(list scalar:nabla) r=grad-graph:nabla]  
-  ^-  [scalar:nabla grad-graph:nabla]  
+  %-  grad:usn
+  |=  [x=(list scalar:usn) r=grad-graph:usn]  
+  ^-  [scalar:usn grad-graph:usn]  
   ?~  x  !!  
-  =^  out  r  (mul:nabla i.x i.x r) 
-  =^  out  r  (sqt:nabla out r) 
+  =^  out  r  (mul:usn i.x i.x r) 
+  =^  out  r  (sqt:usn out r) 
   [out r]
 --    
