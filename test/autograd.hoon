@@ -154,4 +154,17 @@
   =^  out  r  (mul:nabla i.x i.x r)
   [out r]
 ::
+++  test-sqt-of-square
+  %-  expect
+  !>
+  %+  close-enuf
+    ~[.~-1.0]
+  %.  ~[.~-12.3] 
+  %-  grad:nabla
+  |=  [x=(list scalar:nabla) r=grad-graph:nabla]  
+  ^-  [scalar:nabla grad-graph:nabla]  
+  ?~  x  !!  
+  =^  out  r  (mul:nabla i.x i.x r) 
+  =^  out  r  (sqt:nabla out r) 
+  [out r]
 --    
