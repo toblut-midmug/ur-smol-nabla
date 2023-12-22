@@ -113,7 +113,7 @@
 :: 
 ++  grad-val
   |=  f=scalar-fn
-  ^-  $-((list @rd) [@rd (list @rd)])
+  ^-  $-((list @rd) [(list @rd) @rd])
   |=  x=(list @rd)
   =/  gg  *grad-graph
   :: wrap the inputs in scalars and do the forward pass
@@ -126,7 +126,7 @@
   :: collect the gradient corresponding to the input values only
   ::
   =/  dx  (turn `(list scalar)`ss |=(=scalar (snag ind.scalar dall)))
-  [val.y dx]
+  [dx val.y]
 ::
 :: (gate that computes the gradient of f)
 ::
@@ -135,7 +135,7 @@
   ^-  $-((list @rd) (list @rd))
   |=  x=(list @rd)
   ^-  (list @rd)
-  +:((grad-val f) x)
+  -:((grad-val f) x)
 ::
 :: wrapper door for a $grad-graph that reduces boilerplate when working
 :: with elementary operations.
