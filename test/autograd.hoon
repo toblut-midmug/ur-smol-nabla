@@ -2,6 +2,36 @@
 /+  usn=nabla
 |%
 ::
+++  test-weakly-connected-nan
+  %-  expect
+  !>
+  .=  ~[.~20.0]
+  %.  ~[.~10.0]
+  %-  grad:usn
+  |=  [x=(list scalar:usn) r=grad-graph:usn]
+  ^-  [scalar:usn grad-graph:usn]
+  ?~  x  !!
+  =^  nanval  r  (new:usn .~nan r)
+  =^  dummy  r  (mul:usn i.x nanval r)
+  =^  out  r  (mul:usn i.x i.x r)
+  [out r]
+::
+++  test-sqt-of-square
+  %-  expect
+  !>
+  %+  close-enuf
+    ~[.~-1.0]
+  %.  ~[.~-12.3] 
+  %-  grad:usn
+  |=  [x=(list scalar:usn) r=grad-graph:usn]  
+  ^-  [scalar:usn grad-graph:usn]  
+  ?~  x  !!  
+  =^  out  r  (mul:usn i.x i.x r) 
+  =^  out  r  (sqt:usn out r) 
+  [out r]
+::
+:: absolute value
+::
 ++  abs
   |=  a=@rd
   ^-  @rd
@@ -140,31 +170,116 @@
     ((grad:usn f-polynomial) ~[.~2.0]) 
   (limo ~[(f-prime-polynomial ~[.~2.0])])
 ::
-++  test-weakly-connected-nan
-  %-  expect
-  !>
-  .=  ~[.~20.0]
-  %.  ~[.~10.0]
-  %-  grad:usn
-  |=  [x=(list scalar:usn) r=grad-graph:usn]
+++  l2-norm
+  |=  [a=(list scalar:usn) gg=grad-graph:usn]
   ^-  [scalar:usn grad-graph:usn]
-  ?~  x  !!
-  =^  nanval  r  (new:usn .~nan r)
-  =^  dummy  r  (mul:usn i.x nanval r)
-  =^  out  r  (mul:usn i.x i.x r)
-  [out r]
+  =^  out  gg  (dot-scalars a a gg)
+  (sqt:usn out gg)
 ::
-++  test-sqt-of-square
-  %-  expect
+++  add-vec
+  |=  [a=(list scalar:usn) b=(list scalar:usn) gg=grad-graph:usn]
+  ^-  [(list scalar:usn) grad-graph:usn]
+  ?>  .=((lent a) (lent b))
+  =|  out=(list scalar:usn)
+  |-
+  ?:  |(?=(~ a) ?=(~ b))
+    [(flop out) gg]
+  =^  component-sum  gg  (add:usn i.a i.b gg)
+  %=  $
+    a  t.a
+    b  t.b
+    out  [i=component-sum t=out]
+    gg  gg
+  ==
+::
+++  sub-vec
+  |=  [a=(list scalar:usn) b=(list scalar:usn) gg=grad-graph:usn]
+  ^-  [(list scalar:usn) grad-graph:usn]
+  ?>  .=((lent a) (lent b))
+  =|  out=(list scalar:usn)
+  |-
+  ?:  |(?=(~ a) ?=(~ b))
+    [(flop out) gg]
+  =^  component-diff  gg  (sub:usn i.a i.b gg)
+  %=  $
+    a  t.a
+    b  t.b
+    out  [i=component-diff t=out]
+    gg  gg
+  ==
+::
+++  scale-vec
+  |=  [lambda=scalar:usn v=(list scalar:usn) gg=grad-graph:usn]
+  ^-  [(list scalar:usn) grad-graph:usn]
+  =|  out=(list scalar:usn)
+  |-
+  ?:  ?=(~ v)
+    [(flop out) gg]
+  =^  component  gg  (mul:usn lambda i.v gg)
+  %=  $
+    v  t.v
+    out  [i=component t=out]
+    gg  gg
+  ==
+::
+++  add-vec-rd
+  |=  [a=(list @rd) b=(list @rd)]
+  ^-  [(list @rd)]
+  ?>  .=((lent a) (lent b))
+  =|  out=(list @rd)
+  |-
+  ?:  |(?=(~ a) ?=(~ b))
+    (flop out)
+  %=  $
+    a  t.a
+    b  t.b
+    out  [i=(add:rd i.a i.b) t=out]
+  ==
+::
+++  scale-vec-rd
+  |=  [lambda=@rd v=(list @rd)]
+  ^-  (list @rd)
+  =|  out=(list @rd)
+  |-
+  ?:  ?=(~ v)
+    (flop out)
+  %=  $
+    v  t.v
+    out  [i=(mul:rd lambda i.v) t=out]
+  ==
+::  potential of an electric dipole with dipole moment of magnitude 1 in
+::  gaussian units.
+::
+++  phi-dipole
+  |=  [r=(list scalar:usn) gg=grad-graph:usn]
+  ^-  [scalar:usn grad-graph:usn]
+  ?~  r  !!
+  ?>  .=((lent r) 3)
+  =^  p  gg  (news:usn ~[.~-1.4938 .~-0.5583 .~1.2070] gg)
+  =^  absr  gg  (l2-norm r gg)
+  =^  r2  gg  (mul:usn absr absr gg)
+  =^  r3  gg  (mul:usn absr r2 gg)
+  =^  pdotr  gg  (dot-scalars p r gg)
+  (div:usn pdotr r3 gg) 
+:: negative electric dipole field
+::
+++  grad-phi-dipole
+  |=  [r=(list @rd)]
+  ^-  (list @rd)
+  =|  out=(list @rd)
+  ?>  .=((lent r) 3)
+  =/  p  ~[.~-1.4938 .~-0.5583 .~1.2070]
+  =/  absr  (sqt:rd (dot-rd r r))
+  =/  out  (scale-vec-rd (mul:rd absr absr) p)
+  =.  out  (add-vec-rd out (scale-vec-rd (mul:rd .~-3.0 (dot-rd p r)) r))
+  =/  r-5  (div:rd .~1.0 (mul:rd absr (mul:rd absr (mul:rd absr (mul:rd absr absr)))))
+  (scale-vec-rd r-5 out)
+::
+++  test-dipole
+  %-  expect 
   !>
-  %+  close-enuf
-    ~[.~-1.0]
-  %.  ~[.~-12.3] 
-  %-  grad:usn
-  |=  [x=(list scalar:usn) r=grad-graph:usn]  
-  ^-  [scalar:usn grad-graph:usn]  
-  ?~  x  !!  
-  =^  out  r  (mul:usn i.x i.x r) 
-  =^  out  r  (sqt:usn out r) 
-  [out r]
+  %+  close-enuf 
+    ((grad:usn phi-dipole) ~[.~2.0 .~1.0 .~0.5]) 
+  (grad-phi-dipole ~[.~2.0 .~1.0 .~0.5])
+::
 --    
