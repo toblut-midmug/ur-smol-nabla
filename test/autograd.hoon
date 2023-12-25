@@ -2,10 +2,23 @@
 /+  usn=nabla
 |%
 ::
-++  test-weakly-connected-nan
-  %-  expect
+++  test-backprop-empty-grad-graph
+  %+  expect-eq
+  !>  ~
+  !>  (backprop:usn ~)
+::
+++  test-backprop-single-node
+  %+  expect-eq
+  !>  ~[.~1.0]
   !>
-  .=  ~[.~20.0]
+  =|  gg=grad-graph:usn
+  =^  s  gg  (new:usn .~2.345 gg)
+  (backprop:usn gg)
+::
+++  test-weakly-connected-nan
+  %+  expect-eq
+  !>  ~[.~20.0]
+  !>
   %.  ~[.~10.0]
   %-  grad:usn
   |=  [x=(list scalar:usn) r=grad-graph:usn]
@@ -29,7 +42,6 @@
   =^  out  r  (mul:usn i.x i.x r) 
   =^  out  r  (sqt:usn out r) 
   [out r]
-::
 :: absolute value
 ::
 ++  abs
@@ -261,7 +273,8 @@
   =^  r3  gg  (mul:usn absr r2 gg)
   =^  pdotr  gg  (dot-scalars p r gg)
   (div:usn pdotr r3 gg) 
-:: negative electric dipole field
+:: analytic expression for the gradient of the dipole potential (i.e.
+:: the negative electric dipole field)
 ::
 ++  grad-phi-dipole
   |=  [r=(list @rd)]

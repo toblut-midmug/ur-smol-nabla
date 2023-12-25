@@ -87,47 +87,63 @@
   (snoc gg ~[[val=.~0.0 ind=ind.a]])
 :: 
 :: Accumulates the gradient of the last node in the $grad-graph
-:: w.r.t all preceding nodes via backpropagation
+:: w.r.t all strongly connected preceding nodes via backpropagation
 ::
-:: TODO: only accumulate gradients of nodes that are strongly connected
-:: to the last one. Right now, backprop from nodes not strongly connected
-:: to the last one is seeded with zero and thus they do
-:: not contribute ... unless there are Infs or NaNs in the local grad,
-:: which "pollute" the graph and may lead to wrong results!
-:: 
 ++  backprop
   |=  =grad-graph
   ^-  (list @rd)
+  ?:  =(~ grad-graph)
+    ~
   ::  initialize all gradients of the nodes before the last one to zero;
   ::  the gradient of the very last node is one.
   ::
   =/  seed=@rd  .~1.0
-  =/  grads-acc  `(list @rd)`(snoc (reap (dec (lent grad-graph)) .~0.0) seed)
+  =/  grads-acc  (snoc (reap (dec (lent grad-graph)) `(unit @rd)`~) (some seed))
   =/  grads  `(list @rd)`~
   |-
-  ?:  .=(1 (lent grad-graph))
-    :: return the gradient in the same order as the entries in grad-graph
-    ::
-    (flop (snoc grads (rear grads-acc)))
+  ?:  .=(0 (lent grad-graph))
+     :: return the gradient in the same order as the entries in grad-graph
+     ::
+     (flop grads)
+  ::  if the accumulated gradient of the current node is ~ it is weakly
+  ::  connected and is assigned a gradient of zero.
+  ::
+  ?~  (rear grads-acc)
+    %=  $
+      grads-acc  (snip grads-acc)
+      grad-graph  (snip grad-graph)
+      grads  (snoc grads .~0.0)
+    == 
+  ::  append the gradient of a strongly connected node to the gradient
+  ::  list and backpropagate
+  ::
   %=  $
     grads-acc  %^     backprop-step 
                    (rear grad-graph) 
-                 (rear grads-acc) 
+                 (need (rear grads-acc))
                (snip grads-acc)
-    grads  (snoc grads (rear grads-acc))
+    grads  (snoc grads (need (rear grads-acc)))
     grad-graph  (snip grad-graph)
   == 
 :: helper gate for ++backprop
 ::
 ++  backprop-step
-  |=  [=local-grad seed=@rd gacc=(list @rd)]
-  ^-  (list @rd)
+  |=  [=local-grad seed=@rd gacc=(list (unit @rd))]
+  ^-  (list (unit @rd))
   %+  reel  local-grad
   |:  [p=*dscalar acc=gacc]
-  %^  snap  acc  ind.p 
+  ^-  _acc
+  %^    snap  
+      acc  
+    ind.p 
+  ^-  (unit @rd)
+  =/  target-node  (snag ind.p acc)
+  ?~  target-node
+    (some (mul:rd val.p seed))
+  %-  some
   %+  add:rd 
     (mul:rd val.p seed) 
-  (snag ind.p acc)
+  (need target-node)
 :: 
 :: (gate that computes the value and gradient of f)
 :: 
@@ -135,7 +151,7 @@
   |=  f=scalar-fn
   ^-  $-((list @rd) [(list @rd) @rd])
   |=  x=(list @rd)
-  =/  gg  *grad-graph
+  =|  gg=grad-graph
   :: wrap the inputs in scalars and do the forward pass
   ::
   =^  ss  gg  (news x gg)
