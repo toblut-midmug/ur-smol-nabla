@@ -21,7 +21,7 @@
 ::  $scalar-fn: a scalar-valued function. can be passed to ++grad
 ::
 +$  scalar-fn  $-([(list scalar) grad-graph] [scalar grad-graph])
-:: wraps a single @rd in a $scalar and appends it to the graph
+:: wraps a single @rd in a $scalar and appends it to the $grad-graph
 ::
 ++  new  
   |=  [v=@rd gg=grad-graph]
@@ -130,7 +130,8 @@
 ++  backprop-step
   |=  [=local-grad seed=@rd gacc=(list (unit @rd))]
   ^-  (list (unit @rd))
-  %+  reel  local-grad
+  %+  reel  
+    local-grad
   |:  [p=*dscalar acc=gacc]
   ^-  _acc
   %^    snap  
