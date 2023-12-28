@@ -1,4 +1,5 @@
 /+  *nabla
+::
 |%
 ::
 +$  model  $-([(list scalar) (list scalar) grad-graph] [(list scalar) grad-graph])
@@ -65,7 +66,7 @@
   =^  out  gg  (neuron x (scag nparams-neuron `(list scalar)`params) gg)
   %=  $
     outs  (snoc outs out)
-    params  (oust [0 nparams-neuron] `(list scalar)`params)
+    params  (slag nparams-neuron `(list scalar)`params)
     gg  gg
   ==
 ::  build a multilayer perceptron
@@ -77,23 +78,25 @@
   =|  layers=(list model) 
   ?:  ?=(~ dims)  
     !!
-  =|  pairs=(list [@ @]) 
-  =.  pairs  
+  =|  layers-meta=(list [model @ud])
+  =.  layers-meta  
     |-
     ?:  ?=(~ t.dims)
-      pairs
+      layers-meta
     %=  $
       dims  t.dims
-      pairs  (snoc pairs [i.dims i.t.dims])
+      layers-meta  (snoc layers-meta (layer [i.dims i.t.dims]))
     ==
-  ~&  pairs
-  =/  layers-meta  (turn pairs layer)
   =/  layers  (turn layers-meta head)
+  ::  number of parameters of each layer
+  ::
   =/  nparams-layers  (turn layers-meta tail)
-  =/  nparams  (reel nparams-layers ^add)
-  ~&  nparams-layers
-  ~&  nparams
+  ::  total number of parameters
+  ::
+  =/  nparams  (reel nparams-layers ^add) 
   :_  nparams
+  ::  the "forward pass", roughly speaking
+  ::
   |=  [x=(list scalar) params=(list scalar) gg=grad-graph]
   ^-  [(list scalar) grad-graph]
   ?>  .=((lent x) i.dims)
@@ -112,10 +115,10 @@
       params  (slag i.nparams-layers params)
       bound-layers  (snoc bound-layers bound-layer)
     ==
-  %+  roll  bound-layers
+  %+  roll  
+    bound-layers
   |:  [l=*bound-model acc=[x gg]]
   ^-  _acc
   (l -.acc +.acc)
 ::    
-::  
 --
