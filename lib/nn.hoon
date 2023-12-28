@@ -1,6 +1,24 @@
 /+  *nabla
 |%
 ::
++$  model  $-([(list scalar) (list scalar) grad-graph] [(list scalar) grad-graph])
+::
++$  bound-model  $-([(list scalar) grad-graph] [(list scalar) grad-graph])
+::
+++  bind-parameters
+  |=  [m=model params=(list scalar)]
+  ^-  bound-model
+  |=  [x=(list scalar) gg=grad-graph]
+  ^-  [(list scalar) grad-graph]
+  (m x params gg)
+::
+++  bind-inputs
+  |=  [m=model x=(list scalar)]
+  ^-  bound-model
+  |=  [params=(list scalar) gg=grad-graph]
+  ^-  [(list scalar) grad-graph]
+  (m x params gg)
+::
 ++  linear 
   |=  [x=(list scalar) params=(list scalar) gg=grad-graph]
   ^-  [scalar grad-graph]
@@ -11,7 +29,8 @@
   =/  gt  ~(. grad-tracker gg)
   =^  out  gt  (new:gt .~0.0)
   |-  
-  ?:  .=((lent x) 0)  (add out bias grad-graph.gt)
+  ?:  .=((lent x) 0)  
+    (add out bias grad-graph.gt)
   =^  xw  gt  (mul:gt (rear x) (rear weights))
   =^  out-new  gt  (add:gt out xw)
   %=  $
@@ -27,10 +46,11 @@
   =^  out  gg  (linear x params gg)
   (relu out gg)
 ::
-::  fully connected layer
+::  build a fully connected layer
 ::
 ++  layer
   |=  [nin=@ud nout=@ud]
+  ^-  [model @ud]
   =/  nparams-neuron  +(nin)
   =/  nparams  (^mul nparams-neuron nout)
   :_  nparams
@@ -40,11 +60,62 @@
   ?>  .=((lent params) nparams)
   =/  outs=(list scalar)  ~
   |-  
-  ?~  params  [outs gg]
+  ?~  params  
+    [outs gg]
   =^  out  gg  (neuron x (scag nparams-neuron `(list scalar)`params) gg)
   %=  $
     outs  (snoc outs out)
     params  (oust [0 nparams-neuron] `(list scalar)`params)
     gg  gg
   ==
+::  build a multilayer perceptron
+::
+++  mlp
+  |=  [dims=(list @ud)]
+  ^-  [model @ud]
+  ?>  (gte (lent dims) 2)
+  =|  layers=(list model) 
+  ?:  ?=(~ dims)  
+    !!
+  =|  pairs=(list [@ @]) 
+  =.  pairs  
+    |-
+    ?:  ?=(~ t.dims)
+      pairs
+    %=  $
+      dims  t.dims
+      pairs  (snoc pairs [i.dims i.t.dims])
+    ==
+  ~&  pairs
+  =/  layers-meta  (turn pairs layer)
+  =/  layers  (turn layers-meta head)
+  =/  nparams-layers  (turn layers-meta tail)
+  =/  nparams  (reel nparams-layers ^add)
+  ~&  nparams-layers
+  ~&  nparams
+  :_  nparams
+  |=  [x=(list scalar) params=(list scalar) gg=grad-graph]
+  ^-  [(list scalar) grad-graph]
+  ?>  .=((lent x) i.dims)
+  ?>  .=((lent params) nparams)
+  =|  bound-layers=(list bound-model)
+  =.  bound-layers  
+    |-
+    ?:  ?=(~ layers)
+      bound-layers
+    ?~  nparams-layers  !!
+    =/  p  (scag i.nparams-layers params)
+    =/  bound-layer  (bind-parameters i.layers p)
+    %=  $
+      layers  t.layers
+      nparams-layers  t.nparams-layers
+      params  (slag i.nparams-layers params)
+      bound-layers  (snoc bound-layers bound-layer)
+    ==
+  %+  roll  bound-layers
+  |:  [l=*bound-model acc=[x gg]]
+  ^-  _acc
+  (l -.acc +.acc)
+::    
+::  
 --
