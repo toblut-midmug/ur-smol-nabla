@@ -34,7 +34,7 @@
   !>
   %+  close-enuf
     ~[.~-1.0]
-  %.  ~[.~-12.3] 
+  %.  ~[.~-12.3456789] 
   %-  grad:usn
   |=  [x=(list scalar:usn) r=grad-graph:usn]  
   ^-  [scalar:usn grad-graph:usn]  
@@ -259,7 +259,7 @@
     v  t.v
     out  [i=(mul:rd lambda i.v) t=out]
   ==
-::  potential of an electric dipole with dipole moment of magnitude 1 in
+::  potential of an electric dipole with a dipole moment of magnitude 1 in
 ::  gaussian units.
 ::
 ++  phi-dipole
@@ -273,7 +273,7 @@
   =^  r3  gg  (mul:usn absr r2 gg)
   =^  pdotr  gg  (dot-scalars p r gg)
   (div:usn pdotr r3 gg) 
-:: analytic expression for the gradient of the dipole potential (i.e.
+:: analytic expression for the gradient of the electric dipole potential (i.e.
 :: the negative electric dipole field)
 ::
 ++  grad-phi-dipole
@@ -291,8 +291,23 @@
 ++  test-dipole
   %-  expect 
   !>
+  =/  xyzs
+    :~  ~[.~-0.82977995297426 .~2.2032449344215808 .~-4.998856251826551]
+        ~[.~-1.9766742736816023 .~-3.5324410918288693 .~-4.0766140523120225]
+        ~[.~-3.137397886223291 .~-1.5443927295695226 .~-1.0323252576933006]
+        ~[.~0.38816734003356945 .~-0.808054855967052 .~1.852195003967595]
+        ~[.~-2.9554775026848255 .~3.781174363909454 .~-4.726124068020738]
+        ~[.~1.7046751017840223 .~-0.8269519763287303 .~0.5868982844575166]
+        ~[.~-3.596130614047662 .~-3.0189851091512123 .~3.007445686755367]
+        ~[.~4.682615757193975 .~-1.8657582184075716 .~1.9232261566931408]
+        ~[.~3.763891522960383 .~3.9460666350384734 .~-4.149557886302221]
+        ~[.~-4.609452167671177 .~-3.3016958043543108 .~3.7814250342941316]
+    ==
+  =/  autograd-phi-dipole  (grad:usn phi-dipole)
+  %+  levy
+    `(list (list @rd))`xyzs
+  |=  xyz=(list @rd)
   %+  close-enuf 
-    ((grad:usn phi-dipole) ~[.~2.0 .~1.0 .~0.5]) 
-  (grad-phi-dipole ~[.~2.0 .~1.0 .~0.5])
-::
+    (autograd-phi-dipole xyz) 
+  (grad-phi-dipole xyz)
 --    
