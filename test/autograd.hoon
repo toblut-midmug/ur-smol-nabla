@@ -178,9 +178,24 @@
 ++  test-polynomial
   %-  expect 
   !>
+  =/  xs
+    :~  .~-0.82977995297426
+      .~2.2032449344215808
+      .~-3.998856251826551
+      .~-1.9766742736816023
+      .~-3.5324410918288693
+      .~4.0766140523120225
+      .~-3.137397886223291
+      .~-1.5443927295695226
+      .~-1.0323252576933006
+      .~0.38816734003356945
+    ==
+  %+  levy
+    `(list @rd)`xs
+  |=  x=@rd
   %+  close-enuf 
-    ((grad:usn f-polynomial) ~[.~2.0]) 
-  (limo ~[(f-prime-polynomial ~[.~2.0])])
+    ((grad:usn f-polynomial) ~[x]) 
+  (limo ~[(f-prime-polynomial ~[x])])
 ::
 ++  l2-norm
   |=  [a=(list scalar:usn) gg=grad-graph:usn]
@@ -259,6 +274,9 @@
     v  t.v
     out  [i=(mul:rd lambda i.v) t=out]
   ==
+::  some random unit vector
+::
+++  dipole-moment  ~[.~-1.4938 .~-0.5583 .~1.2070]
 ::  potential of an electric dipole with a dipole moment of magnitude 1 in
 ::  gaussian units.
 ::
@@ -267,7 +285,7 @@
   ^-  [scalar:usn grad-graph:usn]
   ?~  r  !!
   ?>  .=((lent r) 3)
-  =^  p  gg  (news:usn ~[.~-1.4938 .~-0.5583 .~1.2070] gg)
+  =^  p  gg  (news:usn dipole-moment gg)
   =^  absr  gg  (l2-norm r gg)
   =^  r2  gg  (mul:usn absr absr gg)
   =^  r3  gg  (mul:usn absr r2 gg)
@@ -281,7 +299,7 @@
   ^-  (list @rd)
   =|  out=(list @rd)
   ?>  .=((lent r) 3)
-  =/  p  ~[.~-1.4938 .~-0.5583 .~1.2070]
+  =/  p  dipole-moment
   =/  absr  (sqt:rd (dot-rd r r))
   =/  out  (scale-vec-rd (mul:rd absr absr) p)
   =.  out  (add-vec-rd out (scale-vec-rd (mul:rd .~-3.0 (dot-rd p r)) r))
