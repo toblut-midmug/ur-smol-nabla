@@ -219,22 +219,6 @@
     gg  gg
   ==
 ::
-++  sub-vec
-  |=  [a=(list scalar:usn) b=(list scalar:usn) gg=grad-graph:usn]
-  ^-  [(list scalar:usn) grad-graph:usn]
-  ?>  .=((lent a) (lent b))
-  =|  out=(list scalar:usn)
-  |-
-  ?:  |(?=(~ a) ?=(~ b))
-    [(flop out) gg]
-  =^  component-diff  gg  (sub:usn i.a i.b gg)
-  %=  $
-    a  t.a
-    b  t.b
-    out  [i=component-diff t=out]
-    gg  gg
-  ==
-::
 ++  scale-vec
   |=  [lambda=scalar:usn v=(list scalar:usn) gg=grad-graph:usn]
   ^-  [(list scalar:usn) grad-graph:usn]
@@ -291,7 +275,7 @@
   =^  r3  gg  (mul:usn absr r2 gg)
   =^  pdotr  gg  (dot-scalars p r gg)
   (div:usn pdotr r3 gg) 
-:: analytic expression for the gradient of the electric dipole potential (i.e.
+:: closed-form expression for the gradient of the electric dipole potential (i.e.
 :: the negative electric dipole field)
 ::
 ++  grad-phi-dipole
