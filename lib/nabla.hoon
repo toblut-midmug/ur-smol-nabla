@@ -2,13 +2,13 @@
 ::  $index: ...of a node in the topologically sorted computational graph
 ::
 +$  index  @
-::  $scalar: wraps an @rd in an $index
+::  $scalar: @rd value and its $index
 ::
 +$  scalar  [val=@rd ind=index]
 ::  $dscalar: partial derivative of a $scalar
 ::
 ::  Same type as $scalar but interpreted differently: Local partial 
-::  derivative of some $scalar w.r.t its input $scapar pointed to by 
+::  derivative of some $scalar w.r.t its input $scalar pointed to by 
 ::  ind.dscalar. 
 ::
 +$  dscalar  scalar 
@@ -18,10 +18,12 @@
 ::  $grad-graph: local gradients of all `$scalar`s in the graph in topological order
 ::
 +$  grad-graph  (list local-grad)
-::  $scalar-fn: a scalar-valued function. can be passed to ++grad
+::  $scalar-fn: a scalar-valued function. can be passed to ++grad and
+::  ++grad-val
 ::
 +$  scalar-fn  $-([(list scalar) grad-graph] [scalar grad-graph])
-:: wraps a single @rd in a $scalar and appends it to the $grad-graph
+::
+::  wraps a single @rd in a $scalar and appends it to a $grad-graph
 ::
 ++  new  
   |=  [v=@rd gg=grad-graph]
@@ -29,7 +31,7 @@
   :-  [val=v ind=(lent gg)]  
   (snoc gg ~)
 :: 
-:: wraps a list of @rd in `$scalar`s and appends them to the graph
+:: wraps a list of @rd in `$scalar`s and appends them to a $grad-graph
 ::
 ++  news
   |=  [vs=(list @rd) gg=grad-graph]
@@ -74,8 +76,7 @@
   %+  snoc  gg 
   ~[[val=(div:rd .~0.5 (sqt:rd val.a)) ind=ind.a]]
 ::  
-:: Rectified linear unit. 
-:: The gradient at zero is set to zero
+:: Rectified linear unit. The gradient at zero is set to zero.
 :: 
 ++  relu
   |=  [a=scalar gg=grad-graph]
@@ -105,7 +106,7 @@
      :: return the gradient in the same order as the entries in grad-graph
      ::
      (flop grads)
-  ::  if the accumulated gradient of the current node is ~ it is weakly
+  ::  if the accumulated gradient of the current node is ~, it is weakly
   ::  connected and is assigned a gradient of zero.
   ::
   ?~  (rear grads-acc)
