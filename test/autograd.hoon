@@ -258,7 +258,6 @@
     v  t.v
     out  [i=(mul:rd lambda i.v) t=out]
   ==
-::  some random unit vector
 ::
 ++  dipole-moment  ~[.~-1.4938 .~-0.5583 .~1.2070]
 ::  potential of an electric dipole with a dipole moment of magnitude 1 in
