@@ -14,32 +14,31 @@
 |%
 ++  train
   |=  $:  =model:nn 
-          pstart=(list @rd)
+          params-start=(list @rd)
           nepochs=@ud
           x-train=(list (list @rd))
           y-train=(list @rd)
       ==
   ^-  (list @rd)
   =/  loss-fn  (construct-loss-fn model x-train y-train)
-  =/  gradloss-loss  (grad-val:nbl loss-fn)
-  =/  p  pstart
+  =/  grads-loss-fn  (grad-val:nbl loss-fn)
+  =/  p  params-start
   =/  epoch  0
   |-  
   ?:  .=(epoch nepochs)
     p
-  =/  df-f  (gradloss-loss p)
-  =/  df  -:df-f
-  =/  f  +:df-f
+  =/  grads-loss  (grads-loss-fn p)
+  =/  grads  -:grads-loss
+  =/  loss  +:grads-loss
   :: linear learning rate decay
   ::
   =/  lr  (sub:rd .~1 (div:rd (sun:rd epoch) (sun:rd nepochs)))
-  =/  pprime  (add-vec-rd p (scale-vec-rd (mul:rd .~-1.0 lr) df))
+  =/  pprime  (add-vec-rd p (scale-vec-rd (mul:rd .~-1.0 lr) grads))
   =/  preds  (predict model x-train pprime)
   =/  acc  (accuracy preds y-train)
-  ~&  "epoch {(scow %ud epoch)}: loss={(scow %rd f)}, acc={(scow %rd acc)}"
+  ~&  "epoch {(scow %ud epoch)}: loss={(scow %rd loss)}, acc={(scow %rd acc)}"
   $(p pprime, epoch +(epoch))
-::  Construct the loss function from the model and the full data set. 
-::  There is no batching.
+::  Construct the loss function from the model and the full data set.
 ::
 ++  construct-loss-fn
   |=  [m=model:nn x-train=(list (list @rd)) y-train=(list @rd)]
@@ -78,23 +77,23 @@
   ==
 ::
 ++  predict
-  |=  [m=model:nn xs=(list (list @rd)) p=(list @rd)]
+  |=  [=model:nn inputs-batch=(list (list @rd)) params=(list @rd)]
   ^-  (list @rd)
   =/  gg  *grad-graph:nbl
-   =^  xs  gg  [p q]:(spin xs gg news:nbl)
-   =^  p  gg  (news:nbl p gg)
-   =/  m-forward  (bind-parameters:nn m p)
-   =^  scores  gg  [p q]:(spin xs gg m-forward)
-   =/  scores  `(list scalar:nbl)`(zing scores)
-   (turn scores |=(s=scalar:nbl ?:((gth:rd val.s .~0) .~1 .~-1)))
+  =^  xs  gg  [p q]:(spin inputs-batch gg news:nbl)
+  =^  p  gg  (news:nbl params gg)
+  =/  forward  (bind-parameters:nn model p)
+  =^  scores  gg  [p q]:(spin xs gg forward)
+  =/  scores  `(list scalar:nbl)`(zing scores)
+  (turn scores |=(s=scalar:nbl ?:((gth:rd val.s .~0) .~1 .~-1)))
 ::
 ++  accuracy
-  |=  [scores=(list @rd) gt-labels=(list @rd)]
+  |=  [scores=(list @rd) labels=(list @rd)]
   ^-  @rd
-  ?>  .=((lent scores) (lent gt-labels))
+  ?>  .=((lent scores) (lent labels))
   =/  preds  (turn scores |=(s=@rd ?:((gth:rd s .~0) .~1 .~-1)))
-  (add:rd .~0.5 (div:rd (dot-rd preds gt-labels) (sun:rd (mul 2 (lent scores)))))
-::  Uniform random in the interval [-1, 1]. 
+  (add:rd .~0.5 (div:rd (dot-rd preds labels) (sun:rd (mul 2 (lent scores)))))
+::  Uniform random numbers in the interval [-1, 1]. 
 ::
 ++  init-parameters
   |=  [n=@ud seed=@]
