@@ -50,7 +50,7 @@
 ::  build a fully connected layer
 ::
 ++  layer
-  |=  [nin=@ud nout=@ud]
+  |=  [nin=@ud nout=@ud nonlin=?]
   ^-  [model @ud]
   =/  nparams-neuron  +(nin)
   =/  nparams  (^mul nparams-neuron nout)
@@ -63,7 +63,9 @@
   |-  
   ?~  params  
     [outs gg]
-  =^  out  gg  (neuron x (scag nparams-neuron `(list scalar)`params) gg)
+  =/  params-neuron  (scag nparams-neuron `(list scalar)`params) 
+  =^  out  gg  (?:(nonlin neuron linear) x params-neuron gg)
+  ::=^  out  gg  ?:(nonlin (relu out gg) [out gg])
   %=  $
     outs  (snoc outs out)
     params  (slag nparams-neuron `(list scalar)`params)
@@ -83,9 +85,11 @@
     |-
     ?:  ?=(~ t.dims)
       layers-meta
+    =/  nonlin  ?!(.=((lent dims) 2))
+    =/  layer-meta  (layer i.dims i.t.dims nonlin)
     %=  $
       dims  t.dims
-      layers-meta  (snoc layers-meta (layer [i.dims i.t.dims]))
+      layers-meta  (snoc layers-meta layer-meta)
     ==
   =/  layers  (turn layers-meta head)
   ::  number of parameters of each layer
