@@ -74,7 +74,7 @@
 ::
 ++  mlp
   |=  [dims=(lest @ud)]
-  ^-  [model @ud]
+  ^-  model-meta
   ?>  (gte (lent dims) 2)
   =|  layers-meta=(list model-meta)
   =.  layers-meta  

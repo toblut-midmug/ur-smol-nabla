@@ -1,32 +1,33 @@
 /+  *test
-/+  usn=nabla
+/+  *vecmath
+/+  nbl=nabla
 |%
 ::
 ++  test-backprop-empty-grad-graph
   %+  expect-eq
   !>  ~
-  !>  (backprop:usn ~)
+  !>  (backprop:nbl ~)
 ::
 ++  test-backprop-single-node
   %+  expect-eq
   !>  ~[.~1.0]
   !>
-  =|  gg=grad-graph:usn
-  =^  s  gg  (new:usn .~2.345 gg)
-  (backprop:usn gg)
+  =|  gg=grad-graph:nbl
+  =^  s  gg  (new:nbl .~2.345 gg)
+  (backprop:nbl gg)
 ::
 ++  test-weakly-connected-nan
   %+  expect-eq
   !>  ~[.~20.0]
   !>
   %.  ~[.~10.0]
-  %-  grad:usn
-  |=  [x=(list scalar:usn) r=grad-graph:usn]
-  ^-  [scalar:usn grad-graph:usn]
+  %-  grad:nbl
+  |=  [x=(list scalar:nbl) r=grad-graph:nbl]
+  ^-  [scalar:nbl grad-graph:nbl]
   ?~  x  !!
-  =^  nanval  r  (new:usn .~nan r)
-  =^  dummy  r  (mul:usn i.x nanval r)
-  =^  out  r  (mul:usn i.x i.x r)
+  =^  nanval  r  (new:nbl .~nan r)
+  =^  dummy  r  (mul:nbl i.x nanval r)
+  =^  out  r  (mul:nbl i.x i.x r)
   [out r]
 ::
 ++  test-sqt-of-square
@@ -35,13 +36,14 @@
   %+  close-enuf
     ~[.~-1.0]
   %.  ~[.~-12.3456789] 
-  %-  grad:usn
-  |=  [x=(list scalar:usn) r=grad-graph:usn]  
-  ^-  [scalar:usn grad-graph:usn]  
+  %-  grad:nbl
+  |=  [x=(list scalar:nbl) r=grad-graph:nbl]  
+  ^-  [scalar:nbl grad-graph:nbl]  
   ?~  x  !!  
-  =^  out  r  (mul:usn i.x i.x r) 
-  =^  out  r  (sqt:usn out r) 
+  =^  out  r  (mul:nbl i.x i.x r) 
+  =^  out  r  (sqt:nbl out r) 
   [out r]
+::
 :: absolute value
 ::
 ++  abs
@@ -50,40 +52,7 @@
   ?:  (gte:rd a .~0.0)
     a
   (sub:rd .~0.0 a)
-::  dot product for lists of @rd
 ::
-++  dot-rd
-  |=  [a=(list @rd) b=(list @rd)]
-  ^-  @rd
-  ?>  .=((lent a) (lent b))
-  ?>  (gth (lent a) 0)
-  =/  out  .~0.0
-  |-
-  ?:  |(.=(0 (lent a)) .=(0 (lent b)))
-    out
-  %=  $
-    a  (snip a)
-    b  (snip b)
-    out  (add:rd out (mul:rd (rear a) (rear b)))
-  ==
-::  dot product for lists of $scalar
-::
-++  dot-scalars
-  |=  [a=(list scalar:usn) b=(list scalar:usn) gg=grad-graph:usn]
-  ^-  [scalar:usn grad-graph:usn]
-  ?>  .=((lent a) (lent b))
-  =^  out-0  gg  (new:usn .~0.0 gg)
-  |-
-  ?:  |(?=(~ a) ?=(~ b))
-    [out-0 gg]
-  =^  aibi  gg  (mul:usn i.a i.b gg)
-  =^  out-sum  gg  (add:usn aibi out-0 gg)
-  %=  $
-    a  t.a
-    b  t.b
-    out-0  out-sum
-    gg  gg
-  ==
 ::  close enough ...
 ::
 ++  close-enuf
@@ -120,26 +89,26 @@
         .~0.7480633
         .~6.7589856
     ==
-  =/  gg  *grad-graph:usn
-  =^  ss  gg  (news:usn vs gg)
-  =^  rs  gg  (news:usn us gg)
+  =/  gg  *grad-graph:nbl
+  =^  ss  gg  (news:nbl vs gg)
+  =^  rs  gg  (news:nbl us gg)
   .=  (dot-rd us vs) 
-  val.-:(dot-scalars ss rs gg)
+  val.-:(dot ss rs gg)
 ::
 ++  f-polynomial
-  |=  [x=(list scalar:usn) gg=grad-graph:usn]
-  ^-  [scalar:usn grad-graph:usn]
+  |=  [x=(list scalar:nbl) gg=grad-graph:nbl]
+  ^-  [scalar:nbl grad-graph:nbl]
   ?~  x  !!
   ?>  .=((lent x) 1)
-  =^  x0  gg  (new:usn .~1.0 gg)
+  =^  x0  gg  (new:nbl .~1.0 gg)
   =/  x1  i.x
-  =^  x2  gg  (mul:usn x1 x1 gg)
-  =^  x3  gg  (mul:usn x1 x2 gg)
-  =^  x4  gg  (mul:usn x1 x3 gg)
-  =^  x5  gg  (mul:usn x1 x4 gg)
+  =^  x2  gg  (mul:nbl x1 x1 gg)
+  =^  x3  gg  (mul:nbl x1 x2 gg)
+  =^  x4  gg  (mul:nbl x1 x3 gg)
+  =^  x5  gg  (mul:nbl x1 x4 gg)
   =/  powers  (limo ~[x0 x1 x2 x3 x4 x5])
   =^  coeffs  gg 
-    %+  news:usn
+    %+  news:nbl
       :~  .~-4.68699287
           .~-2.20431279
           .~2.56718151
@@ -148,7 +117,7 @@
           .~2.67589856
       ==
     gg
-  %^    dot-scalars 
+  %^    dot 
       coeffs
     powers 
   gg
@@ -194,86 +163,30 @@
     `(list @rd)`xs
   |=  x=@rd
   %+  close-enuf 
-    ((grad:usn f-polynomial) ~[x]) 
+    ((grad:nbl f-polynomial) ~[x]) 
   (limo ~[(f-prime-polynomial ~[x])])
 ::
 ++  l2-norm
-  |=  [a=(list scalar:usn) gg=grad-graph:usn]
-  ^-  [scalar:usn grad-graph:usn]
-  =^  out  gg  (dot-scalars a a gg)
-  (sqt:usn out gg)
-::
-++  add-vec
-  |=  [a=(list scalar:usn) b=(list scalar:usn) gg=grad-graph:usn]
-  ^-  [(list scalar:usn) grad-graph:usn]
-  ?>  .=((lent a) (lent b))
-  =|  out=(list scalar:usn)
-  |-
-  ?:  |(?=(~ a) ?=(~ b))
-    [(flop out) gg]
-  =^  component-sum  gg  (add:usn i.a i.b gg)
-  %=  $
-    a  t.a
-    b  t.b
-    out  [i=component-sum t=out]
-    gg  gg
-  ==
-::
-++  scale-vec
-  |=  [lambda=scalar:usn v=(list scalar:usn) gg=grad-graph:usn]
-  ^-  [(list scalar:usn) grad-graph:usn]
-  =|  out=(list scalar:usn)
-  |-
-  ?:  ?=(~ v)
-    [(flop out) gg]
-  =^  component  gg  (mul:usn lambda i.v gg)
-  %=  $
-    v  t.v
-    out  [i=component t=out]
-    gg  gg
-  ==
-::
-++  add-vec-rd
-  |=  [a=(list @rd) b=(list @rd)]
-  ^-  [(list @rd)]
-  ?>  .=((lent a) (lent b))
-  =|  out=(list @rd)
-  |-
-  ?:  |(?=(~ a) ?=(~ b))
-    (flop out)
-  %=  $
-    a  t.a
-    b  t.b
-    out  [i=(add:rd i.a i.b) t=out]
-  ==
-::
-++  scale-vec-rd
-  |=  [lambda=@rd v=(list @rd)]
-  ^-  (list @rd)
-  =|  out=(list @rd)
-  |-
-  ?:  ?=(~ v)
-    (flop out)
-  %=  $
-    v  t.v
-    out  [i=(mul:rd lambda i.v) t=out]
-  ==
+  |=  [a=(list scalar:nbl) gg=grad-graph:nbl]
+  ^-  [scalar:nbl grad-graph:nbl]
+  =^  out  gg  (dot a a gg)
+  (sqt:nbl out gg)
 ::
 ++  dipole-moment  ~[.~-1.4938 .~-0.5583 .~1.2070]
 ::  potential of an electric dipole with a dipole moment of magnitude 1 in
 ::  gaussian units.
 ::
 ++  phi-dipole
-  |=  [r=(list scalar:usn) gg=grad-graph:usn]
-  ^-  [scalar:usn grad-graph:usn]
+  |=  [r=(list scalar:nbl) gg=grad-graph:nbl]
+  ^-  [scalar:nbl grad-graph:nbl]
   ?~  r  !!
   ?>  .=((lent r) 3)
-  =^  p  gg  (news:usn dipole-moment gg)
+  =^  p  gg  (news:nbl dipole-moment gg)
   =^  absr  gg  (l2-norm r gg)
-  =^  r2  gg  (mul:usn absr absr gg)
-  =^  r3  gg  (mul:usn absr r2 gg)
-  =^  pdotr  gg  (dot-scalars p r gg)
-  (div:usn pdotr r3 gg) 
+  =^  r2  gg  (mul:nbl absr absr gg)
+  =^  r3  gg  (mul:nbl absr r2 gg)
+  =^  pdotr  gg  (dot p r gg)
+  (div:nbl pdotr r3 gg) 
 :: closed-form expression for the gradient of the electric dipole potential (i.e.
 :: the negative electric dipole field)
 ::
@@ -304,7 +217,7 @@
         ~[.~3.763891522960383 .~3.9460666350384734 .~-4.149557886302221]
         ~[.~-4.609452167671177 .~-3.3016958043543108 .~3.7814250342941316]
     ==
-  =/  autograd-phi-dipole  (grad:usn phi-dipole)
+  =/  autograd-phi-dipole  (grad:nbl phi-dipole)
   %+  levy
     `(list (list @rd))`xyzs
   |=  xyz=(list @rd)

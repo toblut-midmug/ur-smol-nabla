@@ -1,43 +1,42 @@
 /+  nbl=nabla
 /+  nn
+/+  vm=vecmath
+::
 :-  %say
 |=  *
 :-  %noun
 =<
 =/  m-meta  (mlp:nn ~[2 8 4 1])
-=/  m  -:m-meta
-=/  nparams  +:m-meta
-::  initialize parameters. "It's a good seed, sir."
+::  "It's a good seed, sir."
 ::
-=/  p-init  (init-parameters nparams 2)
-(train m p-init 100 moons-x-train moons-y-train)
+[model.m-meta (train m-meta 2 100 moons-x-train moons-y-train)]
+::
 |%
 ++  train
-  |=  $:  =model:nn 
-          params-start=(list @rd)
+  |=  $:  =model-meta:nn 
+          seed=@
           nepochs=@ud
           x-train=(list (list @rd))
           y-train=(list @rd)
       ==
   ^-  (list @rd)
-  =/  loss-fn  (construct-loss-fn model x-train y-train)
-  =/  grads-loss-fn  (grad-val:nbl loss-fn)
-  =/  p  params-start
+  =/  loss-fn  (construct-loss-fn model.model-meta x-train y-train)
+  =/  params  (init-parameters nparams.model-meta seed)
   =/  epoch  0
   |-  
   ?:  .=(epoch nepochs)
-    p
-  =/  grads-loss  (grads-loss-fn p)
+    params
+  =/  grads-loss  ((grad-val:nbl loss-fn) params)
   =/  grads  -:grads-loss
   =/  loss  +:grads-loss
   :: linear learning rate decay
   ::
   =/  lr  (sub:rd .~1 (div:rd (sun:rd epoch) (sun:rd nepochs)))
-  =/  pprime  (add-vec-rd p (scale-vec-rd (mul:rd .~-1.0 lr) grads))
-  =/  preds  (predict model x-train pprime)
+  =/  params  (add-vec-rd:vm params (scale-vec-rd:vm (mul:rd .~-1.0 lr) grads))
+  =/  preds  (predict model.model-meta x-train params)
   =/  acc  (accuracy preds y-train)
-  ~&  "epoch {(scow %ud epoch)}: loss={(scow %rd loss)}, acc={(scow %rd acc)}"
-  $(p pprime, epoch +(epoch))
+  ~&  "epoch {(scow %ud epoch)}: loss={(scow %rd loss)}, train-acc={(scow %rd acc)}"
+  $(params params, epoch +(epoch))
 ::  Construct the loss function from the model and the full data set.
 ::
 ++  construct-loss-fn
@@ -51,7 +50,7 @@
   =^  scores  gg  [p q]:(spin xs gg m-forward)
   =/  scores  `(list scalar:nbl)`(zing scores)
   =^  data-loss  gg  (hinge-loss scores ys gg)
-  =^  sqsm  gg  (dot-scalars p p gg)
+  =^  sqsm  gg  (dot:vm p p gg)
   =^  alpha  gg  (new:nbl .~1e-4 gg)
   =^  reg-loss  gg  (mul:nbl alpha sqsm gg)
   (add:nbl data-loss reg-loss gg)
@@ -92,7 +91,7 @@
   ^-  @rd
   ?>  .=((lent scores) (lent labels))
   =/  preds  (turn scores |=(s=@rd ?:((gth:rd s .~0) .~1 .~-1)))
-  (add:rd .~0.5 (div:rd (dot-rd preds labels) (sun:rd (mul 2 (lent scores)))))
+  (add:rd .~0.5 (div:rd (dot-rd:vm preds labels) (sun:rd (mul 2 (lent scores)))))
 ::  Uniform random numbers in the interval [-1, 1]. 
 ::
 ++  init-parameters
@@ -106,63 +105,6 @@
   =^  rval  rng  (rads:rng 2.000.000)
   =/  p  (sub:rd (div:rd (sun:rd rval) .~1e6) .~1)
   $(rng rng, parameters (snoc parameters p), n (dec n))
-::
-++  add-vec-rd
-  |=  [a=(list @rd) b=(list @rd)]
-  ^-  [(list @rd)]
-  ?>  .=((lent a) (lent b))
-  =|  out=(list @rd)
-  |-
-  ?:  |(?=(~ a) ?=(~ b))
-    (flop out)
-  %=  $
-    a  t.a
-    b  t.b
-    out  [i=(add:rd i.a i.b) t=out]
-  ==
-::
-++  scale-vec-rd
-  |=  [lambda=@rd v=(list @rd)]
-  ^-  (list @rd)
-  =|  out=(list @rd)
-  |-
-  ?:  ?=(~ v)
-    (flop out)
-  %=  $
-    v  t.v
-    out  [i=(mul:rd lambda i.v) t=out]
-  ==
-::
-++  dot-rd
-  |=  [a=(list @rd) b=(list @rd)]
-  ^-  @rd
-  ?>  .=((lent a) (lent b))
-  ?>  (gth (lent a) 0)
-  =/  out  .~0.0
-  |-
-  ?:  |(.=(0 (lent a)) .=(0 (lent b)))
-    out
-  %=  $
-    a  (snip a)
-    b  (snip b)
-    out  (add:rd out (mul:rd (rear a) (rear b)))
-  ==
-::
-++  dot-scalars
-  |=  [a=(list scalar:nbl) b=(list scalar:nbl) gg=grad-graph:nbl]
-  ^-  [scalar:nbl grad-graph:nbl]
-  ?>  .=((lent a) (lent b))
-  =^  out-0  gg  (new:nbl .~0.0 gg)
-  |-
-  ?:  |(?=(~ a) ?=(~ b))
-    [out-0 gg]
-  =^  aibi  gg  (mul:nbl i.a i.b gg)
-  =^  out-sum  gg  (add:nbl aibi out-0 gg)
-  %=  $
-    a  t.a
-    b  t.b
-    out-0  out-sum
-  ==
 ::
 ++  moons-x-train 
   ^-  (list (list @rd))

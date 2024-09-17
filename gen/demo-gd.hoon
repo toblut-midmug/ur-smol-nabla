@@ -1,5 +1,6 @@
 /+  nabla
 /+  nn
+/+  *vecmath
 :-  %say
 |=  *
 :-  %noun
@@ -35,29 +36,4 @@
   =^  ysq  gg  (mul:nabla y y gg)
   (add:nabla xsq ysq gg)
 ::
-++  add-vec-rd
-  |=  [a=(list @rd) b=(list @rd)]
-  ^-  [(list @rd)]
-  ?>  .=((lent a) (lent b))
-  =|  out=(list @rd)
-  |-
-  ?:  |(?=(~ a) ?=(~ b))
-    (flop out)
-  %=  $
-    a  t.a
-    b  t.b
-    out  [i=(add:rd i.a i.b) t=out]
-  ==
-::
-++  scale-vec-rd
-  |=  [lambda=@rd v=(list @rd)]
-  ^-  (list @rd)
-  =|  out=(list @rd)
-  |-
-  ?:  ?=(~ v)
-    (flop out)
-  %=  $
-    v  t.v
-    out  [i=(mul:rd lambda i.v) t=out]
-  ==
 --
