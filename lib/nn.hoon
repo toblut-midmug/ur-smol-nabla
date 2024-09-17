@@ -4,7 +4,7 @@
 ::
 +$  model  $-([(list scalar) (list scalar) grad-graph] [(list scalar) grad-graph])
 ::
-+$  model-meta  $-(=model nparams=@ud)
++$  model-meta  $:(=model nparams=@ud)
 ::
 +$  vec-fn  $-([(list scalar) grad-graph] [(list scalar) grad-graph])
 ::
@@ -51,7 +51,7 @@
 ::
 ++  layer
   |=  [nin=@ud nout=@ud nonlin=?]
-  ^-  [model @ud]
+  ^-  model-meta
   =/  nparams-neuron  +(nin)
   =/  nparams  (^mul nparams-neuron nout)
   :_  nparams
@@ -76,7 +76,7 @@
   |=  [dims=(lest @ud)]
   ^-  [model @ud]
   ?>  (gte (lent dims) 2)
-  =|  layers-meta=(list [model @ud])
+  =|  layers-meta=(list model-meta)
   =.  layers-meta  
     |-
     ?:  ?=(~ t.dims)
@@ -89,30 +89,27 @@
       dims  t.dims
       layers-meta  (snoc layers-meta layer-meta)
     ==
-  =/  layers  (turn layers-meta head)
-  ::  number of parameters of each layer
-  ::
-  =/  nparams-layers  (turn layers-meta tail)
   ::  total number of parameters
   ::
-  =/  nparams  (reel nparams-layers ^add) 
+  =/  nparams  (reel (turn layers-meta |=(lm=model-meta nparams.lm)) ^add) 
   :_  nparams
   |=  [inputs=(list scalar) params=(list scalar) gg=grad-graph]
   ^-  [(list scalar) grad-graph]
   ?>  .=((lent inputs) i.dims)
   ?>  .=((lent params) nparams)
   =/  features  inputs
+  ::  forward pass
+  ::
   |-
   ?:  ?=(~ layers-meta)
     [features gg]
-  =/  nparams-layer  +:i.layers-meta
-  =/  p  (scag nparams-layer params)
-  =/  bound-layer  (bind-parameters -:i.layers-meta p)
-  =^  features  gg  (bound-layer features gg)
+  =/  layer-meta  i.layers-meta
+  =/  layer-params  (scag nparams.layer-meta params)
+  =^  features  gg  (model.layer-meta features layer-params gg)
   %=  $
     features  features
     layers-meta  t.layers-meta
-    params  (slag nparams-layer params)
+    params  (slag nparams.layer-meta params)
   ==
 ::    
 --
