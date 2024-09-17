@@ -1,10 +1,10 @@
-/+  nabla
+/+  nbl=nabla
 /+  nn
 :-  %say
 |=  *
 :-  %noun
 =<
-=/  fv  (grad-val:nabla loss-fn)
+=/  fv  (grad-val:nbl loss-fn)
 =/  p-init  (init-parameters 65 0)
 (train fv p-init 100)
 |%
@@ -27,39 +27,37 @@
   $(x xprime, step +(step))
 ::
 ++  loss-fn
-  |=  [p=(list scalar:nabla) gg=grad-graph:nabla]
-  ^-  [scalar:nabla grad-graph:nabla]
-  =^  ys  gg  (news:nabla y-train gg)
-  =^  xs  gg  `[(list (list scalar:nabla)) grad-graph:nabla]`(spin x-train gg news:nabla)
+  |=  [p=(list scalar:nbl) gg=grad-graph:nbl]
+  ^-  [scalar:nbl grad-graph:nbl]
+  =^  ys  gg  (news:nbl y-train gg)
+  =^  xs  gg  [p q]:(spin x-train gg news:nbl)
   =/  m  (bind-parameters:nn -:(mlp:nn ~[2 8 4 1]) p)
-  =^  scores  gg  `[(list (list scalar:nabla)) grad-graph:nabla]`(spin xs gg m)
-  =/  scores  `(list scalar:nabla)`(zing scores)
-  ::[(snag 0 scores) gg]
+  =^  scores  gg  [p q]:(spin xs gg m)
+  =/  scores  `(list scalar:nbl)`(zing scores)
   =^  data-loss  gg  (hinge-loss scores ys gg)
   =^  sqsm  gg  (dot-scalars p p gg)
-  =^  alpha  gg  (new:nabla .~1e-4 gg)
-  =^  reg-loss  gg  (mul:nabla alpha sqsm gg)
-  (add:nabla data-loss reg-loss gg)
+  =^  alpha  gg  (new:nbl .~1e-4 gg)
+  =^  reg-loss  gg  (mul:nbl alpha sqsm gg)
+  (add:nbl data-loss reg-loss gg)
 ::
 ++  hinge-loss
-  |=  [scores=(list scalar:nabla) labels=(list scalar:nabla) gg=grad-graph:nabla]
-  ^-  [scalar:nabla grad-graph:nabla]
+  |=  [scores=(list scalar:nbl) labels=(list scalar:nbl) gg=grad-graph:nbl]
+  ^-  [scalar:nbl grad-graph:nbl]
   ?>  .=((lent scores) (lent labels))
-  =^  nsamples  gg  (new:nabla (sun:rd (lent scores)) gg)
-  =^  out-0  gg  (new:nabla .~0.0 gg)
+  =^  nsamples  gg  (new:nbl (sun:rd (lent scores)) gg)
+  =^  out-0  gg  (new:nbl .~0.0 gg)
   |-
   ?:  |(?=(~ scores) ?=(~ labels))
-    (div:nabla out-0 nsamples gg)
-  =^  lss  gg  (mul:nabla i.scores i.labels gg)
-  =^  o  gg  (new:nabla .~1 gg)
-  =^  lss  gg  (sub:nabla o lss gg)
-  =^  lss  gg  (relu:nabla lss gg)
-  =^  out-sum  gg  (add:nabla out-0 lss gg)
+    (div:nbl out-0 nsamples gg)
+  =^  lss  gg  (mul:nbl i.scores i.labels gg)
+  =^  o  gg  (new:nbl .~1 gg)
+  =^  lss  gg  (sub:nbl o lss gg)
+  =^  lss  gg  (relu:nbl lss gg)
+  =^  out-sum  gg  (add:nbl out-0 lss gg)
   %=  $
     scores  t.scores
     labels  t.labels
     out-0  out-sum
-    gg  gg
   ==
 ::
 ++  init-parameters
@@ -101,20 +99,19 @@
   ==
 ::
 ++  dot-scalars
-  |=  [a=(list scalar:nabla) b=(list scalar:nabla) gg=grad-graph:nabla]
-  ^-  [scalar:nabla grad-graph:nabla]
+  |=  [a=(list scalar:nbl) b=(list scalar:nbl) gg=grad-graph:nbl]
+  ^-  [scalar:nbl grad-graph:nbl]
   ?>  .=((lent a) (lent b))
-  =^  out-0  gg  (new:nabla .~0.0 gg)
+  =^  out-0  gg  (new:nbl .~0.0 gg)
   |-
   ?:  |(?=(~ a) ?=(~ b))
     [out-0 gg]
-  =^  aibi  gg  (mul:nabla i.a i.b gg)
-  =^  out-sum  gg  (add:nabla aibi out-0 gg)
+  =^  aibi  gg  (mul:nbl i.a i.b gg)
+  =^  out-sum  gg  (add:nbl aibi out-0 gg)
   %=  $
     a  t.a
     b  t.b
     out-0  out-sum
-    gg  gg
   ==
 ::
 ++  x-train 

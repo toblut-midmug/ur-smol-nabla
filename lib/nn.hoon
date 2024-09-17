@@ -65,7 +65,6 @@
     [outs gg]
   =/  params-neuron  (scag nparams-neuron `(list scalar)`params) 
   =^  out  gg  (?:(nonlin neuron linear) x params-neuron gg)
-  ::=^  out  gg  ?:(nonlin (relu out gg) [out gg])
   %=  $
     outs  (snoc outs out)
     params  (slag nparams-neuron `(list scalar)`params)
