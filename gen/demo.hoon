@@ -4,36 +4,70 @@
 |=  *
 :-  %noun
 =<
-=/  fv  (grad-val:nbl loss-fn)
-=/  p-init  (init-parameters 65 0)
-(train fv p-init 100)
+=/  m-meta  (mlp:nn ~[2 8 4 1])
+=/  m  -:m-meta
+=/  nparams  +:m-meta
+=/  p-init  (init-parameters nparams 0)
+(train m p-init 100 moons-x-train moons-y-train)
 |%
 ++  train
-  |=  $:  grad-f=$-((list @rd) [(list @rd) @rd]) 
-          x=(list @rd)
-          nsteps=@ud
+  |=  $:  =model:nn 
+          pstart=(list @rd)
+          nepochs=@ud
+          x-train=(list (list @rd))
+          y-train=(list @rd)
       ==
   ^-  (list @rd)
-  =/  step  0
+  =/  loss-fn  (construct-loss-fn model x-train y-train)
+  =/  gradloss-loss  (grad-val:nbl loss-fn)
+  =/  p  pstart
+  =/  epoch  0
   |-  
-  ?:  .=(step nsteps)
-    x
-  =/  df-f  (grad-f x)
+  ?:  .=(epoch nepochs)
+    p
+  =/  df-f  (gradloss-loss p)
   =/  df  -:df-f
   =/  f  +:df-f
-  =/  lr  (sub:rd .~1 (div:rd (sun:rd step) (sun:rd nsteps)))
-  =/  xprime  (add-vec-rd x (scale-vec-rd (mul:rd .~-1.0 lr) df))
-  ~&  "epoch {(scow %ud step)}: loss={(scow %rd f)}"
-  $(x xprime, step +(step))
+  :: linear learning rate decay
+  ::
+  =/  lr  (sub:rd .~1 (div:rd (sun:rd epoch) (sun:rd nepochs)))
+  =/  pprime  (add-vec-rd p (scale-vec-rd (mul:rd .~-1.0 lr) df))
+  =/  preds  (predict model x-train pprime)
+  =/  acc  (accuracy preds y-train)
+::  ~&  "acc={(scow %rd acc)}"
+  ~&  "epoch {(scow %ud epoch)}: loss={(scow %rd f)}, acc={(scow %rd acc)}"
+  $(p pprime, epoch +(epoch))
 ::
-++  loss-fn
+::++  train
+::  |=  $:  grad-f=$-((list @rd) [(list @rd) @rd]) 
+::          p=(list @rd)
+::          nepochs=@ud
+::      ==
+::  ^-  (list @rd)
+::  =/  epoch  0
+::  |-  
+::  ?:  .=(epoch nepochs)
+::    p
+::  =/  df-f  (grad-f p)
+::  =/  df  -:df-f
+::  =/  f  +:df-f
+::  =/  lr  (sub:rd .~1 (div:rd (sun:rd epoch) (sun:rd nepochs)))
+::  =/  pprime  (add-vec-rd p (scale-vec-rd (mul:rd .~-1.0 lr) df))
+::  ~&  "epoch {(scow %ud epoch)}: loss={(scow %rd f)}"
+::  $(p pprime, epoch +(epoch))
+::::
+++  construct-loss-fn
+  |=  [m=model:nn x-train=(list (list @rd)) y-train=(list @rd)]
+  ^-  scalar-fn:nbl
   |=  [p=(list scalar:nbl) gg=grad-graph:nbl]
   ^-  [scalar:nbl grad-graph:nbl]
   =^  ys  gg  (news:nbl y-train gg)
   =^  xs  gg  [p q]:(spin x-train gg news:nbl)
-  =/  m  (bind-parameters:nn -:(mlp:nn ~[2 8 4 1]) p)
-  =^  scores  gg  [p q]:(spin xs gg m)
+  =/  m-forward  (bind-parameters:nn m p)
+  =^  scores  gg  [p q]:(spin xs gg m-forward)
   =/  scores  `(list scalar:nbl)`(zing scores)
+::  =/  acc  (accuracy (turn scores |=(s=scalar:nbl val.s)) y-train)
+::  ~&  "acc={(scow %rd acc)}"
   =^  data-loss  gg  (hinge-loss scores ys gg)
   =^  sqsm  gg  (dot-scalars p p gg)
   =^  alpha  gg  (new:nbl .~1e-4 gg)
@@ -59,6 +93,23 @@
     labels  t.labels
     out-0  out-sum
   ==
+::
+++  predict
+  |=  [m=model:nn x=(list (list @rd)) p=(list @rd)]
+  ^-  (list @rd)
+  =^  x  gg  [p q]:(spin x ~ news:nbl)
+  =^  p  gg  (news:nbl p gg)
+  =/  m-forward  (bind-parameters:nn m p)
+  =^  scores  gg  [p q]:(spin xs gg m-forward)
+  =/  scores  `(list scalar:nbl)`(zing scores)
+  (turn scores |=(s=scalar:nbl ?:((gth:rd val.s .~0) .~1 .~-1)))
+::
+++  accuracy
+  |=  [scores=(list @rd) gt=(list @rd)]
+  ^-  @rd
+  ?>  .=((lent scores) (lent gt))
+  =/  preds  (turn scores |=(s=@rd ?:((gth:rd s .~0) .~1 .~-1)))
+  (add:rd .~0.5 (div:rd (dot-rd preds gt) (sun:rd (mul 2 (lent scores)))))
 ::
 ++  init-parameters
   |=  [n=@ud seed=@]
@@ -98,6 +149,21 @@
     out  [i=(mul:rd lambda i.v) t=out]
   ==
 ::
+++  dot-rd
+  |=  [a=(list @rd) b=(list @rd)]
+  ^-  @rd
+  ?>  .=((lent a) (lent b))
+  ?>  (gth (lent a) 0)
+  =/  out  .~0.0
+  |-
+  ?:  |(.=(0 (lent a)) .=(0 (lent b)))
+    out
+  %=  $
+    a  (snip a)
+    b  (snip b)
+    out  (add:rd out (mul:rd (rear a) (rear b)))
+  ==
+::
 ++  dot-scalars
   |=  [a=(list scalar:nbl) b=(list scalar:nbl) gg=grad-graph:nbl]
   ^-  [scalar:nbl grad-graph:nbl]
@@ -114,7 +180,7 @@
     out-0  out-sum
   ==
 ::
-++  x-train 
+++  moons-x-train 
   ^-  (list (list @rd))
   :~  ~[.~0.2045645509097321 .~0.33361554024744483]
       ~[.~0.6106948307994285 .~-0.5039833298329776]
@@ -168,7 +234,7 @@
       ~[.~0.9133377821875416 .~-0.4638764384614954]
   ==
 ::
-++  y-train  
+++  moons-y-train  
   ^-  (list @rd)
   :~  .~1
       .~1
