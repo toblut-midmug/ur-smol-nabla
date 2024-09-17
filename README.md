@@ -37,10 +37,10 @@ Some more examples can be found in `/test/autograd.hoon`. When copied to the `%b
 Similar to [torch.func](https://pytorch.org/docs/stable/func.html) and [JAX](https://github.com/google/jax?tab=readme-ov-file#transformations), there is an interface for computing gradient functions. A scalar-valued functions $\mathbb{R}^n \to \mathbb{R}$ is represented by a `$scalar-fn` which is a gate that takes a sample of type `[(list scalar) grad-graph]` and produces a `[scalar grad-graph]`. A `$scalar-fn` can be passed to `++grad` which produces a gate that computes the gradient w.r.t. the inputs of `$scalar-fn`. The gate produced by `++grad-val` additionaly produces the value of the original `$scalar-fn`.
 ```hoon
 > =f |=  [xs=(list scalar:nabla) gg=grad-graph:nabla]
-  ^-  [(list scalar:nabla) grad-graph:nabla]
+  ^-  [scalar:nabla grad-graph:nabla]
   =/  x  (snag 0 xs)
   =/  y  (snag 1 xs)
-  =^  xsq  gg  (mul:nabla x x gg)
+  =^  xsq  gg  (mul:nabla x x gg)  
   =^  ysq  gg  (mul:nabla y y gg)
   (add:nabla xsq ysq gg)
 
