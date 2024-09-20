@@ -1,6 +1,24 @@
 /+  nbl=nabla
 ::
 |%
+::  dot product for lists of $scalar
+::
+++  dot
+  |=  [a=(list scalar:nbl) b=(list scalar:nbl) gg=grad-graph:nbl]
+  ^-  [scalar:nbl grad-graph:nbl]
+  ?>  .=((lent a) (lent b))
+  =^  out  gg  (new:nbl .~0.0 gg)
+  |-
+  ?:  |(?=(~ a) ?=(~ b))
+    [out gg]
+  =^  ab  gg  (mul:nbl i.a i.b gg)
+  =^  out  gg  (add:nbl ab out gg)
+  %=  $
+    a  t.a
+    b  t.b
+    out  out
+  ==
+::
 ::  dot product for lists of @rd
 ::
 ++  dot-rd
@@ -10,30 +28,12 @@
   ?>  (gth (lent a) 0)
   =/  out  .~0.0
   |-
-  ?:  |(.=(0 (lent a)) .=(0 (lent b)))
-    out
-  %=  $
-    a  (snip a)
-    b  (snip b)
-    out  (add:rd out (mul:rd (rear a) (rear b)))
-  ==
-::  dot product for lists of $scalar
-::
-++  dot
-  |=  [a=(list scalar:nbl) b=(list scalar:nbl) gg=grad-graph:nbl]
-  ^-  [scalar:nbl grad-graph:nbl]
-  ?>  .=((lent a) (lent b))
-  =^  out-0  gg  (new:nbl .~0.0 gg)
-  |-
   ?:  |(?=(~ a) ?=(~ b))
-    [out-0 gg]
-  =^  aibi  gg  (mul:nbl i.a i.b gg)
-  =^  out-sum  gg  (add:nbl aibi out-0 gg)
+    out
   %=  $
     a  t.a
     b  t.b
-    out-0  out-sum
-    gg  gg
+    out  (add:rd out (mul:rd i.a i.b))
   ==
 ::
 ++  add-vec
@@ -43,27 +43,12 @@
   =|  out=(list scalar:nbl)
   |-
   ?:  |(?=(~ a) ?=(~ b))
-    [(flop out) gg]
+    [out gg]
   =^  component-sum  gg  (add:nbl i.a i.b gg)
   %=  $
     a  t.a
     b  t.b
-    out  [i=component-sum t=out]
-    gg  gg
-  ==
-::
-++  scale-vec
-  |=  [lambda=scalar:nbl v=(list scalar:nbl) gg=grad-graph:nbl]
-  ^-  [(list scalar:nbl) grad-graph:nbl]
-  =|  out=(list scalar:nbl)
-  |-
-  ?:  ?=(~ v)
-    [(flop out) gg]
-  =^  component  gg  (mul:nbl lambda i.v gg)
-  %=  $
-    v  t.v
-    out  [i=component t=out]
-    gg  gg
+    out  (snoc out component-sum)
   ==
 ::
 ++  add-vec-rd
@@ -73,23 +58,23 @@
   =|  out=(list @rd)
   |-
   ?:  |(?=(~ a) ?=(~ b))
-    (flop out)
+    out 
   %=  $
     a  t.a
     b  t.b
-    out  [i=(add:rd i.a i.b) t=out]
+    out  (snoc out (add:rd i.a i.b))
   ==
+::
+++  scale-vec
+  |=  [lambda=scalar:nbl v=(list scalar:nbl) gg=grad-graph:nbl]
+  ^-  [(list scalar:nbl) grad-graph:nbl]
+  %^  spin  v  
+    gg  
+  |=([a=scalar:nbl g=grad-graph:nbl] (mul:nbl a lambda g))
 ::
 ++  scale-vec-rd
   |=  [lambda=@rd v=(list @rd)]
   ^-  (list @rd)
-  =|  out=(list @rd)
-  |-
-  ?:  ?=(~ v)
-    (flop out)
-  %=  $
-    v  t.v
-    out  [i=(mul:rd lambda i.v) t=out]
-  ==
+  (turn v (cury mul:rd lambda))
 ::
 --
