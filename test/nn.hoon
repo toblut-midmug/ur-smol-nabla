@@ -1,18 +1,17 @@
 /+  *test
 /+  *nn
-/+  usn=nabla
+/+  nbl=nabla
 |%
 ::
 ++  test-forward
   %-  expect
   !>
-  =|  gg=grad-graph:usn
-  =/  m-meta  (mlp ~[2 16 16 1])
-  =/  m  -:m-meta
-  =/  nparams  +:m-meta
-  =^  p  gg  (news:usn (reap nparams .~1.23456789) gg)
-  =^  x  gg  (news:usn ~[.~1.0 .~2.0] gg)
-  =^  out  gg  (m x p gg)
-  %.y
+  =|  gg=grad-graph:nbl
+  =/  n-out  4
+  =/  m-meta  (mlp ~[2 16 16 n-out])
+  =^  p  gg  (news:nbl (reap nparams.m-meta .~1.23456789) gg)
+  =^  x  gg  (news:nbl ~[.~1.0 .~2.0] gg)
+  =^  out  gg  (model.m-meta x p gg)
+  .=(n-out (lent out))
 ::
 --
