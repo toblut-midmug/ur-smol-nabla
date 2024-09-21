@@ -2,8 +2,8 @@
 
 A minimal autograd + small deep learning library in Hoon in the spirit of [micrograd](https://github.com/karpathy/micrograd). 
 
-### Train a neural net in Hoon
-`/gen/moons-demo.hoon` trains a 65 parameters neural net for a binary classification problem on 50 training examples of 2D data. Copy it along with the dependencies in `/lib/` into the respective directories of your ship's `%base` desk. In the dojo:
+### Train a neural net 
+`/gen/moons-demo.hoon` trains a 65 parameters neural net for 2d binary classification on a small dataset. Copy it along with the dependencies in `/lib/` into the respective directories of your ship's `%base` desk. In the dojo:
 
 ```
 > |commit %base
@@ -32,8 +32,8 @@ The following code then evaluates the expression $x^2 + y^2$ at $x=3$, $y=-4$ an
   [out (backprop:nabla gg)]
 [[val=.~25 ind=4] ~[.~6 .~-8 .~1 .~1 .~1]]
 ```
-Each operation takes a `$grad-graph` as part of its sample and produces an updated `$grad-graph` (the gradient of the result gets appended) along with its result. The general pattern here is to use the `=^` rune to pin a face to the result and update the `$grad-graph`. The entries of the gradient `~[.~6 .~-8 .~1 .~1 .~1]` correspond to `x`, `y`, `xsq`, `ysq` and `out`, respectively.
-
+The entries of the gradient `~[.~6 .~-8 .~1 .~1 .~1]` correspond to `x`, `y`, `xsq`, `ysq` and `out`, respectively.
+Each operation takes a `$grad-graph` as part of its sample and produces a cell of the resulting `$scalar` and the updated `$grad-graph` (the gradient of the result gets appended). The general pattern here is to use the `=^` rune to pin a face to the result and update the `$grad-graph`. 
 
 Some more examples can be found in `/tests/autograd.hoon` which can be run from the `%base` desk of a ship via
 ```
@@ -70,7 +70,7 @@ Similar to [torch.func](https://pytorch.org/docs/stable/func.html) and [JAX](htt
 
 
 ### Limitations and Issues
-*  **Boilerplate:** A `$grad-graph` needs to be explicitly passed around for each operation. Something of the sort is probably the irreducible cost of doing business in a purely functional language but there might be a way of doing things in a less cumbersome fashion. Perhaps someone has something smart to say about this. In any case, at least a little code per operation can be removed by wrapping a `$grad-graph` and the elementary operations in a door - somewhat similar to how gall agents work. See `++grad-tracker` in `nabla.hoon` for an implementation of this idea. The example
+*  **Boilerplate:** A `$grad-graph` needs to be explicitly passed around for each operation. Something of the sort might be unavoidable in a purely functional language but maybe there is a way of doing things in a less cumbersome fashion. Perhaps someone has something smart to say about this. In any case, at least a little code per operation can be removed by wrapping a `$grad-graph` and the elementary operations in a door - somewhat similar to how gall agents work. See `++grad-tracker` in `nabla.hoon` for an implementation of this idea. The example
     ```hoon
     =|  gg=grad-graph:nabla
     =^  x  gg  (new:nabla .~3.0 gg)
