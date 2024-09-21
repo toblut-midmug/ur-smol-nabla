@@ -1,20 +1,27 @@
 # ur-smol-nabla
 
-A minimal implementation of reverse-mode automatic differentiation ("backpropagation") in Hoon in the spirit of
-[micrograd](https://github.com/karpathy/micrograd). Inspired by [backprop](https://backprop.jle.im/) and [torch.func](https://pytorch.org/docs/stable/func.html). A small deep learning framework on top of it is work in progress ...
+A minimal autograd + small deep learning library in Hoon in the spirit of [micrograd](https://github.com/karpathy/micrograd). 
 
-### Overview
-To simplify things, `ur-smol-nabla` works with scalar values only. A `$scalar` consists of a `@rd` (double-precision floating-point) value and an index of a corresponding node in a topologically sorted computational graph. Gradients are tracked in a `$grad-graph`. Each element of a `$grad-graph` is the local gradient (i.e. a list of partial derivatives w.r.t "input" `$scalar`s) of a corresponding `$scalar`. The (intermediate) results of computations are only stored in `$scalar`s which allows for computations to be performed in a somewhat "dynamic" fashion, as illustrated below.
+### Train a neural net 
+`/gen/moons-demo.hoon` trains a 65 parameters neural net for 2d binary classification on a small dataset. Copy it along with the dependencies in `/lib/` into the respective directories of your ship's `%base` desk. In the dojo:
 
-### Example
+```
+> |commit %base
+> +moons-demo
+```
 
-To get started, copy the contents of `/lib` into the `/lib` folder of a development ships's `%base` desk. The autograd functionality is contained in `/lib/nabla.hoon` and can be made accessible in the dojo via
+The model is trained for 100 epochs which takes around half an hour on an M3 MacBook Air. Very slow 🙂.
 
+### `/lib/nabla.hoon` under the hood
+
+To simplify things, `ur-smol-nabla` works with scalar values only. A `$scalar` consists of a `@rd` (double-precision floating-point) value and an index of the corresponding node in a topologically sorted computational graph. Gradients are tracked in a `$grad-graph` while (intermediate) results of computations are only stored in `$scalar`s which allows for the graph to be built in a somewhat "dynamic" fashion, as illustrated below.
+
+To play around with the autograd engine in the dojo, put `/lib/nabla.hoon` into the `/lib` folder of the `%base` desk, `|commit %base` and build it via:
 ```
 =nabla -build-file %/lib/nabla/hoon
 ```
 
-The following evaluates the expression $x^2 + y^2$ at $x=3$, $y=-4$ and computes the gradients: 
+The following code evaluates the expression $x^2 + y^2$ at $x=3$, $y=-4$ and computes the gradients: 
 ```hoon
 > =|  gg=grad-graph:nabla
   =^  x  gg  (new:nabla .~3.0 gg)
@@ -25,22 +32,22 @@ The following evaluates the expression $x^2 + y^2$ at $x=3$, $y=-4$ and computes
   [out (backprop:nabla gg)]
 [[val=.~25 ind=4] ~[.~6 .~-8 .~1 .~1 .~1]]
 ```
-Note that each operation takes a `$grad-graph` as part of its sample and produces an updated `$grad-graph` (the gradient of the result gets appended) along with its result. The general pattern here is to use the `=^` rune to pin a face to the result and "update" the `$grad-graph`. The entries of the gradient `~[.~6 .~-8 .~1 .~1 .~1]` correspond to `x`, `y`, `xsq`, `ysq` and `out`, respectively.
+The entries of the gradient `~[.~6 .~-8 .~1 .~1 .~1]` correspond to `x`, `y`, `xsq`, `ysq` and `out`, respectively.
+Each operation takes a `$grad-graph` as part of its sample and produces a cell of the resulting `$scalar` and the updated `$grad-graph`. The general pattern here is to use the `=^` rune to pin a face to the result and update the `$grad-graph`. 
 
-
-Some more examples can be found in `/test/autograd.hoon`. When copied to the `%base` desk of a ship, the code above can also be run via
+Some more examples can be found in `/tests/autograd.hoon` which can be run from the `%base` desk of a ship via
 ```
 -test %/tests/autograd ~
 ```
 
-### The gradient of a gate 
-Similar to [torch.func](https://pytorch.org/docs/stable/func.html) and [JAX](https://github.com/google/jax?tab=readme-ov-file#transformations), there is an interface for computing gradient functions. A scalar-valued functions $\mathbb{R}^n \to \mathbb{R}$ is represented by a `$scalar-fn` which is a gate that takes a sample of type `[(list scalar) grad-graph]` and produces a `[scalar grad-graph]`. A `$scalar-fn` can be passed to `++grad` which produces a gate that computes the gradient w.r.t. the inputs of `$scalar-fn`. The gate produced by `++grad-val` additionaly produces the value of the original `$scalar-fn`.
+Similar to [torch.func](https://pytorch.org/docs/stable/func.html) and [JAX](https://github.com/google/jax?tab=readme-ov-file#transformations), there is an interface for computing gradient functions. A `$scalar-fn` is a gate that takes a `[(list scalar) grad-graph]` sample and produces a `[scalar grad-graph]`. A `$scalar-fn` can be passed to `++grad` which produces a gate that computes the gradient w.r.t. the inputs of `$scalar-fn`. The gate produced by `++grad-val` additionally produces the value of the original `$scalar-fn`.
+
 ```hoon
 > =f |=  [xs=(list scalar:nabla) gg=grad-graph:nabla]
-  ^-  [(list scalar:nabla) grad-graph:nabla]
+  ^-  [scalar:nabla grad-graph:nabla]
   =/  x  (snag 0 xs)
   =/  y  (snag 1 xs)
-  =^  xsq  gg  (mul:nabla x x gg)
+  =^  xsq  gg  (mul:nabla x x gg)  
   =^  ysq  gg  (mul:nabla y y gg)
   (add:nabla xsq ysq gg)
 
@@ -62,8 +69,8 @@ Similar to [torch.func](https://pytorch.org/docs/stable/func.html) and [JAX](htt
 ```
 
 
-### Issues 
-*  **Boilerplate:** A `$grad-graph` needs to be explicitly passed around for each operation. Something of the sort is probably the irreducible cost of doing business in a purely functional language but there might be a way of doing things in a less cumbersome fashion. Perhaps someone has something smart to say about this. In any case, at least a little code per operation can be removed by wrapping a `$grad-graph` and the elementary operations in a door - somewhat similar to how gall agents work. See `++grad-tracker` in `nabla.hoon` for an implementation of this idea. The example
+### Limitations and Issues
+*  **Boilerplate:** A `$grad-graph` needs to be explicitly passed around for each operation. Something of the sort might be unavoidable in a purely functional language but maybe there is a way of doing things in a less cumbersome fashion. Perhaps someone has something smart to say about this. In any case, at least a little code per operation can be removed by wrapping a `$grad-graph` and the elementary operations in a door - somewhat similar to how gall agents work. See `++grad-tracker` in `nabla.hoon` for an implementation of this idea. The example
     ```hoon
     =|  gg=grad-graph:nabla
     =^  x  gg  (new:nabla .~3.0 gg)
