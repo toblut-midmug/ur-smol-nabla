@@ -1,5 +1,4 @@
-:: Train a multilayer perceptron for binary classification on synthetic
-:: 2d data.
+:: Train a multilayer perceptron for binary classification on synthetic 2d data.
 :: Cf.:
 :: https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_moons.html
 :: https://github.com/karpathy/micrograd/blob/master/demo.ipynb
