@@ -10,7 +10,7 @@ A minimal autograd + small deep learning library in Hoon in the spirit of [micro
 > +moons-demo
 ```
 
-The model is trained for 100 epochs which takes around half an hour on an M3 MacBook Air. Very slow 🙂
+The model is trained for 100 epochs which takes around half an hour on an M3 MacBook Air. Very slow 🙂.
 
 ### `/lib/nabla.hoon` under the hood
 
@@ -21,7 +21,7 @@ To play around with the autograd engine in the dojo, put `/lib/nabla.hoon` into 
 =nabla -build-file %/lib/nabla/hoon
 ```
 
-The following code then evaluates the expression $x^2 + y^2$ at $x=3$, $y=-4$ and computes the gradients: 
+The following code evaluates the expression $x^2 + y^2$ at $x=3$, $y=-4$ and computes the gradients: 
 ```hoon
 > =|  gg=grad-graph:nabla
   =^  x  gg  (new:nabla .~3.0 gg)
@@ -33,7 +33,7 @@ The following code then evaluates the expression $x^2 + y^2$ at $x=3$, $y=-4$ an
 [[val=.~25 ind=4] ~[.~6 .~-8 .~1 .~1 .~1]]
 ```
 The entries of the gradient `~[.~6 .~-8 .~1 .~1 .~1]` correspond to `x`, `y`, `xsq`, `ysq` and `out`, respectively.
-Each operation takes a `$grad-graph` as part of its sample and produces a cell of the resulting `$scalar` and the updated `$grad-graph` (the gradient of the result gets appended). The general pattern here is to use the `=^` rune to pin a face to the result and update the `$grad-graph`. 
+Each operation takes a `$grad-graph` as part of its sample and produces a cell of the resulting `$scalar` and the updated `$grad-graph`. The general pattern here is to use the `=^` rune to pin a face to the result and update the `$grad-graph`. 
 
 Some more examples can be found in `/tests/autograd.hoon` which can be run from the `%base` desk of a ship via
 ```
